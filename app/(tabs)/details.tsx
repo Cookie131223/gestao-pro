@@ -1,441 +1,250 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Feather, FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+// app/(tabs)/details.tsx
+import { Feather } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useObras } from '../../context/ObraContext';
 
 export default function DetailsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const { obras, adicionarTarefa, adicionarMaterial, atualizarStatusTarefa } = useObras();
+
+  // Encontra a obra ativa com base no ID passado por parâmetro no clique do Dashboard
+  const obraId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const obra = obras.find(o => o.id === obraId);
+
+  // Controle de Abas Internas: 'geral' | 'cronograma' | 'materiais'
+  const [activeTab, setActiveTab] = useState<'geral' | 'cronograma' | 'materiais'>('geral');
+
+  // Estados para formulário de Nova Tarefa
+  const [tituloTarefa, setTituloTarefa] = useState('');
+  const [respTarefa, setRespTarefa] = useState('');
+  const [prioTarefa, setPrioTarefa] = useState<'Alta' | 'Média' | 'Baixa'>('Média');
+
+  // Estados para formulário de Novo Material
+  const [nomeMat, setNomeMat] = useState('');
+  const [qtdMat, setQtdMat] = useState('');
+  const [valorMat, setValorMat] = useState('');
+
+  if (!obra) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Obra não encontrada ou removida.</Text>
+        <TouchableOpacity style={styles.btnVoltar} onPress={() => router.push('/(tabs)')}>
+          <Text style={styles.btnVoltarText}>Voltar ao Dashboard</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Funções de Submissão
+  const handleCriarTarefa = () => {
+    if (!tituloTarefa) return alert('Insira o título da tarefa!');
+    adicionarTarefa(obra.id, {
+      titulo: tituloTarefa,
+      descricao: 'Criada via painel de controle',
+      categoria: 'Geral',
+      responsavel: respTarefa || 'Equipe Local',
+      prioridade: prioTarefa,
+      status: 'Pendente',
+      inicio: new Date().toLocaleDateString('pt-BR'),
+      prazo: 'A definir'
+    });
+    setTituloTarefa('');
+    setRespTarefa('');
+    alert('Tarefa adicionada ao cronograma!');
+  };
+
+  const handleLancarMaterial = () => {
+    if (!nomeMat || !valorMat) return alert('Preencha o nome e o valor do material!');
+    adicionarMaterial(obra.id, {
+      nome: nomeMat,
+      quantidade: qtdMat || '1 un',
+      valor: parseFloat(valorMat)
+    });
+    setNomeMat('');
+    setQtdMat('');
+    setValorMat('');
+    alert('Gasto com material lançado com sucesso!');
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.mainContainer}>
+      
+      {/* Header de Navegação */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.backLink}>
+          <Feather name="arrow-left" size={20} color="#3B82F6" />
+          <Text style={styles.backLinkText}>Voltar</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{obra.nome}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: obra.statusColor }]}>
+          <Text style={styles.badgeText}>{obra.status}</Text>
+        </View>
+      </View>
+
+      {/* Menu de Abas Estilo Figma */}
+      <View style={styles.tabsMenuRow}>
+        <TouchableOpacity style={[styles.tabButton, activeTab === 'geral' && styles.tabActive]} onPress={() => setActiveTab('geral')}>
+          <Feather name="info" size={16} color={activeTab === 'geral' ? '#3B82F6' : '#64748B'} />
+          <Text style={[styles.tabText, activeTab === 'geral' && styles.tabTextActive]}>Geral</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tabButton, activeTab === 'cronograma' && styles.tabActive]} onPress={() => setActiveTab('cronograma')}>
+          <Feather name="calendar" size={16} color={activeTab === 'cronograma' ? '#3B82F6' : '#64748B'} />
+          <Text style={[styles.tabText, activeTab === 'cronograma' && styles.tabTextActive]}>Cronograma ({obra.tarefas.length})</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tabButton, activeTab === 'materiais' && styles.tabActive]} onPress={() => setActiveTab('materiais')}>
+          <Feather name="package" size={16} color={activeTab === 'materiais' ? '#3B82F6' : '#64748B'} />
+          <Text style={[styles.tabText, activeTab === 'materiais' && styles.tabTextActive]}>Materiais/Custos</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
-          </TouchableOpacity>
-          
-          <View style={styles.headerTitleContainer}>
-            <FontAwesome5 name="building" size={20} color="#3B5998" style={styles.headerIcon} />
-            <Text style={styles.headerTitle}>Casa Residencial - Jardim das Flores</Text>
-          </View>
-          
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>Em Andamento</Text>
-          </View>
-        </View>
-
-        {/* Top Cards Grid */}
-        <View style={styles.topCardsGrid}>
-          {/* Cliente */}
-          <View style={styles.topCard}>
-            <View style={styles.cardHeader}>
-              <Feather name="user" size={16} color="#64748B" />
-              <Text style={styles.cardLabel}>Cliente</Text>
+        {/* ABA 1: VISÃO GERAL */}
+        {activeTab === 'geral' && (
+          <View style={styles.tabContent}>
+            <View style={styles.infoCard}>
+              <Text style={styles.cardTitle}>Dados Básicos</Text>
+              <Text style={styles.infoLabel}>Cliente</Text>
+              <Text style={styles.infoVal}>{obra.cliente}</Text>
+              <Text style={styles.infoLabel}>Endereço Comercial</Text>
+              <Text style={styles.infoVal}>{obra.endereco}</Text>
+              <Text style={styles.infoLabel}>Fase Construtiva Atual</Text>
+              <Text style={styles.infoVal}>{obra.fase}</Text>
             </View>
-            <Text style={styles.cardValue}>João Silva</Text>
-          </View>
 
-          {/* Localização */}
-          <View style={styles.topCard}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="location-outline" size={16} color="#64748B" />
-              <Text style={styles.cardLabel}>Localização</Text>
-            </View>
-            <Text style={styles.cardValue}>Rua das Flores, 123 - Jardim das Flores</Text>
-          </View>
-
-          {/* Prazo */}
-          <View style={styles.topCard}>
-            <View style={styles.cardHeader}>
-              <Feather name="calendar" size={16} color="#64748B" />
-              <Text style={styles.cardLabel}>Prazo</Text>
-            </View>
-            <Text style={styles.cardValue}>91 dias restantes</Text>
-            <Text style={styles.cardSubtitle}>74 dias decorridos</Text>
-          </View>
-
-          {/* Progresso */}
-          <View style={styles.topCard}>
-            <View style={styles.cardHeader}>
-              <Feather name="trending-up" size={16} color="#64748B" />
-              <Text style={styles.cardLabel}>Progresso</Text>
-            </View>
-            <Text style={styles.progressValue}>45%</Text>
-          </View>
-        </View>
-
-        {/* Visão Financeira Section */}
-        <View style={styles.cardSection}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="cash-outline" size={18} color="#31C48D" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Visão Financeira</Text>
-          </View>
-
-          <View style={styles.financeItem}>
-            <Text style={styles.financeLabel}>Orçamento Total</Text>
-            <Text style={styles.financeValue}>R$ 280.000</Text>
-          </View>
-          <View style={styles.financeItem}>
-            <Text style={styles.financeLabel}>Valor Gasto</Text>
-            <Text style={[styles.financeValue, {color: '#3B82F6'}]}>R$ 126.000</Text>
-          </View>
-          <View style={styles.financeItem}>
-            <Text style={styles.financeLabel}>Saldo Disponível</Text>
-            <Text style={[styles.financeValue, {color: '#31C48D'}]}>R$ 154.000</Text>
-          </View>
-
-          {/* Finance Progress Bar */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: '45%' }]} />
-            </View>
-            <Text style={styles.progressPercentageText}>45.0% do orçamento utilizado</Text>
-          </View>
-
-          {/* Buttons */}
-          <TouchableOpacity style={styles.primaryButton}>
-            <Ionicons name="cube-outline" size={18} color="#FFFFFF" style={styles.buttonIcon} />
-            <Text style={styles.primaryButtonText}>Gerenciar Materiais</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Ionicons name="images-outline" size={18} color="#1E293B" style={styles.buttonIcon} />
-            <Text style={styles.secondaryButtonText}>Ver Fotos da Obra</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Cronograma da Obra Section */}
-        <View style={styles.cardSection}>
-          <View style={styles.sectionHeader}>
-            <Feather name="calendar" size={18} color="#64748B" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Cronograma da Obra</Text>
-          </View>
-
-          {/* Timeline Items */}
-          {[
-            { name: 'Fundação', date: 'Jan 2026', status: 'Concluída' },
-            { name: 'Estrutura', date: 'Mar 2026', status: 'Em Andamento' },
-            { name: 'Alvenaria', date: 'Abr 2026', status: 'Pendente' },
-            { name: 'Instalações', date: 'Mai 2026', status: 'Pendente' },
-            { name: 'Acabamento', date: 'Jun 2026', status: 'Pendente' },
-          ].map((item) => (
-            <View key={item.name} style={styles.timelineItem}>
-              <View style={styles.timelinePoint}>
-                {item.status === 'Concluída' && <Ionicons name="checkmark-circle" size={24} color="#31C48D" />}
-                {item.status === 'Em Andamento' && <FontAwesome5 name="adjust" size={24} color="#3B82F6" />}
-                {item.status === 'Pendente' && <View style={styles.pendingPoint} />}
-              </View>
-              
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineName}>{item.name}</Text>
-                <Text style={styles.timelineDate}>{item.date}</Text>
-              </View>
-
-              <View style={[styles.statusBadge, {
-                backgroundColor: item.status === 'Concluída' ? '#EBF5FF' : (item.status === 'Em Andamento' ? '#E1EFFF' : '#F1F5F9')
-              }]}>
-                <Text style={[styles.statusBadgeText, {
-                  color: item.status === 'Concluída' ? '#3B82F6' : (item.status === 'Em Andamento' ? '#3B82F6' : '#64748B')
-                }]}>{item.status}</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.cardTitle}>Saúde Financeira da Obra</Text>
+              <View style={styles.financialRow}>
+                <View>
+                  <Text style={styles.infoLabel}>Orçamento Total</Text>
+                  <Text style={[styles.infoVal, { fontSize: 18, color: '#10B981' }]}>R$ {obra.orcamento.toLocaleString('pt-BR')}</Text>
+                </View>
+                <View>
+                  <Text style={styles.infoLabel}>Total Lançado (Materiais)</Text>
+                  <Text style={[styles.infoVal, { fontSize: 18, color: '#EF4444' }]}>R$ {obra.gasto.toLocaleString('pt-BR')}</Text>
+                </View>
               </View>
             </View>
-          ))}
-        </View>
-
-        {/* Detalhes do Progresso Section */}
-        <View style={styles.cardSection}>
-          <Text style={styles.sectionTitleNoIcon}>Detalhes do Progresso</Text>
-          
-          <Text style={styles.phaseTitle}>Fase Atual: Estrutura</Text>
-
-          {/* Main Progress Bar */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: '45%' }]} />
-            </View>
-            <Text style={styles.progressPercentageTextBottom}>45% Concluído</Text>
           </View>
+        )}
 
-          {/* Date Details */}
-          <View style={styles.dateDetails}>
-            <View style={styles.dateItem}>
-              <Text style={styles.dateLabel}>Data de Início</Text>
-              <Text style={styles.dateValue}>14 de janeiro de 2026</Text>
+        {/* ABA 2: CRONOGRAMA DA OBRA */}
+        {activeTab === 'cronograma' && (
+          <View style={styles.tabContent}>
+            {/* Formulário Rápido para Criar Tarefa */}
+            <View style={styles.quickForm}>
+              <Text style={styles.formTitle}>+ Nova Tarefa para o Cronograma</Text>
+              <TextInput style={styles.input} placeholder="Nome da Tarefa (Ex: Pintura externa)" placeholderTextColor="#94A3B8" value={tituloTarefa} onChangeText={setTituloTarefa} />
+              <TextInput style={styles.input} placeholder="Responsável (Ex: Mestre Carlos)" placeholderTextColor="#94A3B8" value={respTarefa} onChangeText={setRespTarefa} />
+              <TouchableOpacity style={styles.btnSubmit} onPress={handleCriarTarefa}>
+                <Text style={styles.btnSubmitText}>Adicionar Tarefa</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.dateItem}>
-              <Text style={styles.dateLabel}>Previsão de Término</Text>
-              <Text style={styles.dateValue}>29 de junho de 2026</Text>
-            </View>
-            <View style={styles.dateItem}>
-              <Text style={styles.dateLabel}>Duração Total</Text>
-              <Text style={styles.dateValue}>166 dias</Text>
-            </View>
+
+            {/* Listagem das tarefas vinculadas a essa obra */}
+            <Text style={styles.sectionSubtitle}>Lista de Tarefas Locais</Text>
+            {obra.tarefas.map(t => (
+              <View key={t.id} style={styles.localTaskCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.localTaskTitle}>{t.titulo}</Text>
+                  <Text style={styles.localTaskSub}>Responsável: {t.responsavel}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={[styles.statusToggleBadge, { backgroundColor: t.status === 'Concluído' ? '#10B981' : '#64748B' }]}
+                  onPress={() => atualizarStatusTarefa(obra.id, t.id, t.status === 'Concluído' ? 'Em Andamento' : 'Concluído')}
+                >
+                  <Text style={styles.toggleText}>{t.status} 🔄</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
           </View>
-        </View>
+        )}
 
+        {/* ABA 3: MATERIAIS / LANÇAR GASTOS */}
+        {activeTab === 'materiais' && (
+          <View style={styles.tabContent}>
+            {/* Formulário Rápido para Lançar Material */}
+            <View style={styles.quickForm}>
+              <Text style={styles.formTitle}>💵 Lançar Compra de Material / Insumo</Text>
+              <TextInput style={styles.input} placeholder="Nome do Material (Ex: Cimento Cauê)" placeholderTextColor="#94A3B8" value={nomeMat} onChangeText={setNomeMat} />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Qtd (Ex: 50 sacos)" placeholderTextColor="#94A3B8" value={qtdMat} onChangeText={setQtdMat} />
+                <TextInput style={[styles.input, { flex: 1 }]} placeholder="Custo Total R$ (Ex: 1500)" placeholderTextColor="#94A3B8" keyboardType="numeric" value={valorMat} onChangeText={setValorMat} />
+              </View>
+              <TouchableOpacity style={[styles.btnSubmit, { backgroundColor: '#10B981' }]} onPress={handleLancarMaterial}>
+                <Text style={styles.btnSubmitText}>Lançar Custo de Insumo</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Histórico de Compras da Obra */}
+            <Text style={styles.sectionSubtitle}>Histórico de Insumos Lançados</Text>
+            {obra.materiais.length === 0 ? (
+              <Text style={styles.emptyText}>Nenhum material associado a esta obra.</Text>
+            ) : (
+              obra.materiais.map(m => (
+                <View key={m.id} style={styles.materialRow}>
+                  <View>
+                    <Text style={styles.matName}>{m.nome}</Text>
+                    <Text style={styles.matDetails}>Quantidade: {m.quantidade}</Text>
+                  </View>
+                  <Text style={styles.matPrice}>- R$ {m.valor.toLocaleString('pt-BR')}</Text>
+                </View>
+              ))
+            )}
+          </View>
+        )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    paddingRight: 10,
-  },
-  headerTitleContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    marginRight: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    flexShrink: 1,
-  },
-  badgeContainer: {
-    backgroundColor: '#3B82F6',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  topCardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  topCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    minHeight: 110,
-    justifyContent: 'space-between',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cardLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  cardValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  progressValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  cardSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionIcon: {
-    marginRight: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  sectionTitleNoIcon: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 20,
-  },
-  financeItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  financeLabel: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  financeValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  progressSection: {
-    marginTop: 16,
-    marginBottom: 20,
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 4,
-  },
-  progressPercentageText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 8,
-    textAlign: 'left',
-  },
-  progressPercentageTextBottom: {
-    fontSize: 14,
-    color: '#64748B',
-    textAlign: 'right',
-    marginTop: 8,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 12,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  secondaryButtonText: {
-    color: '#1E293B',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  timelinePoint: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  pendingPoint: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#E2E8F0',
-  },
-  timelineContent: {
-    flex: 1,
-  },
-  timelineName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  timelineDate: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  phaseTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginBottom: 8,
-  },
-  dateDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 16,
-  },
-  dateItem: {
-    width: '48%',
-    marginBottom: 12,
-  },
-  dateLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  dateValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
+  mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+  topHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E2E8F0', gap: 16 },
+  backLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  backLinkText: { color: '#3B82F6', fontSize: 14, fontWeight: '600' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#0F172A', flex: 1 },
+  statusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 6 },
+  badgeText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
+  
+  tabsMenuRow: { flexDirection: 'row', backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E2E8F0', paddingHorizontal: 12 },
+  tabButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, gap: 8, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: '#3B82F6' },
+  tabText: { fontSize: 14, color: '#64748B', fontWeight: '500' },
+  tabTextActive: { color: '#3B82F6', fontWeight: '700' },
+  
+  scrollContainer: { flex: 1, padding: 24 },
+  tabContent: { paddingBottom: 40 },
+  infoCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 20 },
+  cardTitle: { fontSize: 15, fontWeight: 'bold', color: '#0F172A', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 8 },
+  financialRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  infoLabel: { fontSize: 11, color: '#94A3B8', marginTop: 10, marginBottom: 2, textTransform: 'uppercase' },
+  infoVal: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
+  
+  quickForm: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 24 },
+  formTitle: { fontSize: 14, fontWeight: 'bold', color: '#0F172A', marginBottom: 14 },
+  input: { height: 40, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 6, paddingHorizontal: 12, fontSize: 13, color: '#0F172A', backgroundColor: '#F8FAFC', marginBottom: 12 },
+  btnSubmit: { backgroundColor: '#3B82F6', height: 40, borderRadius: 6, justifyContent: 'center', alignItems: 'center', marginTop: 4 },
+  btnSubmitText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  
+  sectionSubtitle: { fontSize: 14, fontWeight: 'bold', color: '#475569', marginBottom: 14 },
+  localTaskCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10 },
+  localTaskTitle: { fontSize: 14, fontWeight: 'bold', color: '#1E293B' },
+  localTaskSub: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  statusToggleBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 },
+  toggleText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
+  
+  materialRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF', padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10 },
+  matName: { fontSize: 14, fontWeight: 'bold', color: '#1E293B' },
+  matDetails: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  matPrice: { fontSize: 14, fontWeight: 'bold', color: '#EF4444' },
+  emptyText: { color: '#94A3B8', fontSize: 13, textAlign: 'center', marginTop: 20 },
+  
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 24 },
+  errorText: { fontSize: 16, color: '#64748B', fontWeight: '500', marginBottom: 16 },
+  btnVoltar: { backgroundColor: '#3B82F6', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 },
+  btnVoltarText: { color: '#FFF', fontWeight: '600' }
 });

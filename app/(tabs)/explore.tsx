@@ -1,112 +1,154 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// app/(tabs)/explore.tsx
+import { Feather } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useObras } from '../../context/ObraContext';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function CronogramaScreen() {
+  const { obras, atualizarStatusTarefa } = useObras();
 
-export default function TabTwoScreen() {
+  // 🛠️ Mapeia e junta todas as tarefas de todas as obras em uma lista única
+  const todasAsTarefas = obras.flatMap(obra => 
+    obra.tarefas.map(tarefa => ({
+      ...tarefa,
+      obraNome: obra.nome,
+      obraId: obra.id,
+      borderColor: obra.borderColor
+    }))
+  );
+
+  // 🧮 Estatísticas do Cronograma baseadas nos dados reais
+  const totalTarefas = todasAsTarefas.length;
+  const emAndamento = todasAsTarefas.filter(t => t.status === 'Em Andamento').length;
+  const pendentes = todasAsTarefas.filter(t => t.status === 'Pendente').length;
+  const concluidas = todasAsTarefas.filter(t => t.status === 'Concluído').length;
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.mainContainer}>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        
+        <Text style={styles.pageTitle}>Cronograma Geral</Text>
+
+        {/* Mini Cards de Status Dinâmicos */}
+        <View style={styles.gridSummary}>
+          <View style={styles.miniCard}>
+            <Text style={styles.miniLabel}>Total</Text>
+            <Text style={styles.miniVal}>{totalTarefas}</Text>
+          </View>
+          <View style={[styles.miniCard, { borderLeftColor: '#3B82F6' }]}>
+            <Text style={styles.miniLabel}>Em Andamento</Text>
+            <Text style={[styles.miniVal, { color: '#3B82F6' }]}>{emAndamento}</Text>
+          </View>
+          <View style={[styles.miniCard, { borderLeftColor: '#F59E0B' }]}>
+            <Text style={styles.miniLabel}>Pendentes</Text>
+            <Text style={[styles.miniVal, { color: '#F59E0B' }]}>{pendentes}</Text>
+          </View>
+          <View style={[styles.miniCard, { borderLeftColor: '#10B981' }]}>
+            <Text style={styles.miniLabel}>Concluídas</Text>
+            <Text style={[styles.miniVal, { color: '#10B981' }]}>{concluidas}</Text>
+          </View>
+        </View>
+
+        {/* Mensagem amigável caso não tenha nenhuma tarefa criada */}
+        {todasAsTarefas.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Feather name="clipboard" size={40} color="#94A3B8" />
+            <Text style={styles.emptyText}>Nenhuma tarefa cadastrada no cronograma.</Text>
+          </View>
+        ) : (
+          /* Lista de Tarefas do Cronograma */
+          todasAsTarefas.map((tarefa) => (
+            <View 
+              key={tarefa.id} 
+              style={[
+                styles.taskCard, 
+                { borderLeftColor: tarefa.prioridade === 'Alta' ? '#EF4444' : '#F59E0B' }
+              ]}
+            >
+              <View style={styles.taskHeader}>
+                <View style={styles.titleContainer}>
+                  <Feather 
+                    name={tarefa.status === 'Concluído' ? "check-circle" : tarefa.status === 'Em Andamento' ? "clock" : "file-text"} 
+                    size={16} 
+                    color={tarefa.status === 'Concluído' ? '#10B981' : tarefa.status === 'Em Andamento' ? '#3B82F6' : '#64748B'} 
+                    style={{ marginRight: 8, marginTop: 2 }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.taskTitle}>{tarefa.titulo}</Text>
+                    <Text style={styles.taskDesc}>{tarefa.descricao}</Text>
+                  </View>
+                </View>
+
+                {/* Botão Interativo para Alternar Status da Tarefa ao Clicar */}
+                <TouchableOpacity 
+                  style={[
+                    styles.statusBadge, 
+                    { backgroundColor: tarefa.status === 'Concluído' ? '#10B981' : tarefa.status === 'Em Andamento' ? '#3B82F6' : '#64748B' }
+                  ]}
+                  onPress={() => {
+                    // Muda o status ciclicamente: Pendente -> Em Andamento -> Concluído -> Pendente
+                    const proximoStatus = 
+                      tarefa.status === 'Pendente' ? 'Em Andamento' : 
+                      tarefa.status === 'Em Andamento' ? 'Concluído' : 'Pendente';
+                    atualizarStatusTarefa(tarefa.obraId, tarefa.id, proximoStatus);
+                  }}
+                >
+                  <Text style={styles.badgeText}>{tarefa.status} 🔄</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Grid de Informações Internas */}
+              <View style={styles.infoGrid}>
+                <View style={styles.infoBlock}>
+                  <Text style={styles.infoLabel}>Obra Alvo</Text>
+                  <Text style={styles.infoValue}>{tarefa.obraNome}</Text>
+                </View>
+                <View style={styles.infoBlock}>
+                  <Text style={styles.infoLabel}>Responsável</Text>
+                  <Text style={styles.infoValue}>{tarefa.responsavel}</Text>
+                </View>
+              </View>
+
+              {/* Datas no Rodapé */}
+              <View style={styles.taskFooter}>
+                <View style={styles.dateBlock}>
+                  <Feather name="calendar" size={14} color="#64748B" />
+                  <Text style={styles.dateText}>Início: {tarefa.inicio}</Text>
+                </View>
+                <View style={styles.dateBlock}>
+                  <Feather name="clock" size={14} color="#64748B" />
+                  <Text style={styles.dateText}>Prazo: {tarefa.prazo}</Text>
+                </View>
+              </View>
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContainer: { flex: 1, padding: 24, paddingTop: 32 },
+  pageTitle: { fontSize: 24, fontWeight: 'bold', color: '#0F172A', marginBottom: 24 },
+  gridSummary: { flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' },
+  miniCard: { flex: 1, minWidth: '22%', backgroundColor: '#FFF', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 4, borderLeftColor: '#64748B' },
+  miniLabel: { fontSize: 11, color: '#64748B', marginBottom: 4 },
+  miniVal: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 8 },
+  emptyText: { color: '#64748B', fontSize: 14 },
+  taskCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 4 },
+  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  titleContainer: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
+  taskTitle: { fontSize: 15, fontWeight: 'bold', color: '#1E293B', marginBottom: 2 },
+  taskDesc: { fontSize: 12, color: '#64748B' },
+  statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, flexDirection: 'row', alignItems: 'center' },
+  badgeText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
+  infoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, marginTop: 4, gap: 12 },
+  infoBlock: { flex: 1 },
+  infoLabel: { fontSize: 11, color: '#94A3B8', marginBottom: 2 },
+  infoValue: { fontSize: 13, fontWeight: '600', color: '#1E293B' },
+  taskFooter: { flexDirection: 'row', gap: 20, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12, marginTop: 4 },
+  dateBlock: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dateText: { fontSize: 12, color: '#1E293B', fontWeight: '500' }
 });

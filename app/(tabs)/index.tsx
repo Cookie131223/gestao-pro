@@ -1,323 +1,182 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+// app/(tabs)/index.tsx
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useObras } from '../../context/ObraContext'; // Hook dinâmico
 
-export default function HomeScreen() {
+export default function DashboardScreen() {
   const router = useRouter();
+  const { obras } = useObras(); // Puxa as obras direto do banco local
+
+  // 🧮 CÁLCULOS AUTOMÁTICOS DE MÉTRICAS EM TEMPO REAL
+  const obrasAtivas = obras.filter(o => o.status === 'Em Andamento').length;
+  const obrasAtrasadas = obras.filter(o => o.status === 'Atrasada').length;
+  
+  const orcamentoTotal = obras.reduce((acc, o) => acc + o.orcamento, 0);
+  const gastoTotal = obras.reduce((acc, o) => acc + o.gasto, 0);
+  const percentualGastoGlobal = orcamentoTotal > 0 ? Math.round((gastoTotal / orcamentoTotal) * 100) : 0;
+
+  // Formatar moeda BRL de forma simplificada
+  const formatarMoeda = (valor: number) => {
+    if (valor >= 1000000) return `R$ ${(valor / 1000000).toFixed(1)}M`;
+    if (valor >= 1000) return `R$ ${(valor / 1000).toFixed(0)}k`;
+    return `R$ ${valor}`;
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        
-        {/* Header */}
-        <View style={styles.header}>
-          <FontAwesome5 name="building" size={24} color="#3B5998" />
-          <Text style={styles.headerTitle}>Gestor de Obras</Text>
-        </View>
-
-        {/* Dashboard Cards Grid */}
-        <View style={styles.dashboardGrid}>
-          {/* Card 1: Obras Ativas */}
-          <View style={styles.dashboardCard}>
-            <Text style={styles.cardTitle}>Obras Ativas</Text>
-            <View style={styles.cardValueContainer}>
-              <FontAwesome5 name="building" size={20} color="#3B5998" />
-              <Text style={styles.cardValue}>3</Text>
-            </View>
-          </View>
-
-          {/* Card 2: Obras Atrasadas */}
-          <View style={styles.dashboardCard}>
-            <Text style={styles.cardTitle}>Obras Atrasadas</Text>
-            <View style={styles.cardValueContainer}>
-              <Feather name="alert-circle" size={20} color="#E02424" />
-              <Text style={[styles.cardValue, { color: '#E02424' }]}>1</Text>
-            </View>
-          </View>
-
-          {/* Card 3: Orçamento Total */}
-          <View style={styles.dashboardCard}>
-            <Text style={styles.cardTitle}>Orçamento Total</Text>
-            <View style={styles.cardValueContainer}>
-              <Feather name="trending-up" size={20} color="#31C48D" />
-              <Text style={styles.cardValue}>R$ 795k</Text>
-            </View>
-          </View>
-
-          {/* Card 4: Gasto Acumulado */}
-          <View style={styles.dashboardCard}>
-            <Text style={styles.cardTitle}>Gasto Acumulado</Text>
-            <View style={styles.cardValueContainer}>
-              <Feather name="clock" size={20} color="#D0813B" />
-              <Text style={styles.cardValue}>R$ 441k</Text>
-            </View>
-            <Text style={styles.cardSubtitle}>55% do orçamento</Text>
-          </View>
-        </View>
-
-        {/* Section Title & Button */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Minhas Obras</Text>
-          <TouchableOpacity style={styles.newButton} activeOpacity={0.8}>
-            <Feather name="plus" size={16} color="#FFFFFF" />
-            <Text style={styles.newButtonText}>Nova</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Project Card (Clicável) */}
-        <TouchableOpacity
-          style={styles.projectCard}
-          activeOpacity={0.9}
-          onPress={() => router.push('/details')}
+    <View style={styles.mainContainer}>
+      
+      {/* Cabeçalho Superior Fixo */}
+      <View style={styles.topHeader}>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <TouchableOpacity 
+          style={styles.btnNovaObra}
+          onPress={() => router.push('/modal')}
         >
-          <View style={styles.projectHeader}>
-            <Text style={styles.projectTitle}>Casa Residencial - Jardim das Flores</Text>
-            <View style={styles.phaseContainer}>
-              <Text style={styles.phaseLabel}>Fase Atual</Text>
-              <Text style={styles.phaseValue}>Estrutura</Text>
-            </View>
-          </View>
-
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>Em Andamento</Text>
-          </View>
-
-          <Text style={styles.clientText}>Cliente: João Silva</Text>
-          <Text style={styles.addressText}>Rua das Flores, 123 - Jardim das Flores</Text>
-
-          {/* Progress Bar */}
-          <View style={styles.progressSection}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Progresso</Text>
-              <Text style={styles.progressPercentage}>45%</Text>
-            </View>
-            <View style={styles.progressBarBackground}>
-              <View style={[styles.progressBarFill, { width: '45%' }]} />
-            </View>
-          </View>
-
-          {/* Separator */}
-          <View style={styles.separator} />
-
-          {/* Project Details Grid */}
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Início</Text>
-              <Text style={styles.detailValue}>14/01/2026</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Previsão</Text>
-              <Text style={styles.detailValue}>29/06/2026</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Orçamento</Text>
-              <Text style={styles.detailValue}>R$ 280k</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Gasto</Text>
-              <Text style={styles.detailValue}>R$ 126k (45%)</Text>
-            </View>
-          </View>
+          <Feather name="plus" size={16} color="#FFF" />
+          <Text style={styles.btnText}>Nova Obra</Text>
         </TouchableOpacity>
+      </View>
 
+      {/* Conteúdo Rolável */}
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        
+        {/* Cards Indicadores Superiores Dinâmicos */}
+        <View style={styles.metricsGrid}>
+          <View style={[styles.metricCard, { borderLeftColor: '#3B82F6' }]}>
+            <Text style={styles.metricLabel}>Obras Ativas</Text>
+            <View style={styles.metricValueContainer}>
+              <Feather name="copy" size={18} color="#3B82F6" style={styles.metricIcon} />
+              <Text style={[styles.metricValue, { color: '#1E293B' }]}>{obrasAtivas}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.metricCard, { borderLeftColor: '#EF4444' }]}>
+            <Text style={styles.metricLabel}>Obras Atrasadas</Text>
+            <View style={styles.metricValueContainer}>
+              <Feather name="alert-circle" size={18} color="#EF4444" style={styles.metricIcon} />
+              <Text style={[styles.metricValue, { color: '#EF4444' }]}>{obrasAtrasadas}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.metricCard, { borderLeftColor: '#22C55E' }]}>
+            <Text style={styles.metricLabel}>Orçamento Total</Text>
+            <View style={styles.metricValueContainer}>
+              <Feather name="trending-up" size={18} color="#22C55E" style={styles.metricIcon} />
+              <Text style={[styles.metricValue, { color: '#1E293B' }]}>{formatarMoeda(orcamentoTotal)}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.metricCard, { borderLeftColor: '#F97316' }]}>
+            <Text style={styles.metricLabel}>Gasto Acumulado</Text>
+            <View style={styles.metricValueContainer}>
+              <Feather name="clock" size={18} color="#F97316" style={styles.metricIcon} />
+              <Text style={[styles.metricValue, { color: '#1E293B' }]}>{formatarMoeda(gastoTotal)}</Text>
+            </View>
+            <Text style={styles.metricSubtext}>{percentualGastoGlobal}% do orçamento</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Minhas Obras</Text>
+
+        {/* Mapeamento Dinâmico das Obras Cadastradas */}
+        {obras.map((obra) => (
+          <TouchableOpacity 
+            key={obra.id} 
+            style={[styles.obraCard, { borderLeftColor: obra.borderColor }]}
+            onPress={() => router.push({
+              pathname: '/details',
+              params: { id: obra.id, nome: obra.nome, fase: obra.fase }
+            })}
+          >
+            {/* Header do Card */}
+            <View style={styles.obraHeader}>
+              <View style={styles.titleRow}>
+                <Text style={styles.obraNome}>{obra.nome}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: obra.statusColor }]}>
+                  <Text style={styles.statusText}>{obra.status}</Text>
+                </View>
+              </View>
+              <View style={styles.faseContainer}>
+                <Text style={styles.faseLabel}>Fase Atual</Text>
+                <Text style={styles.faseValue}>{obra.fase}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.infoText}>Cliente: {obra.cliente}</Text>
+            <Text style={styles.infoText}>{obra.endereco}</Text>
+
+            {/* Progresso Dinâmico */}
+            <View style={styles.progressoSection}>
+              <View style={styles.progressoLabels}>
+                <Text style={styles.progressoTitle}>Progresso</Text>
+                <Text style={styles.progressoPercentage}>{obra.progresso}%</Text>
+              </View>
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: `${obra.progresso}%` }]} />
+              </View>
+            </View>
+
+            {/* Grid de Valores */}
+            <View style={styles.dadosGrid}>
+              <View style={styles.dadoCol}>
+                <Text style={styles.dadoLabel}>Início</Text>
+                <Text style={styles.dadoValue}>{obra.inicio}</Text>
+              </View>
+              <View style={styles.dadoCol}>
+                <Text style={styles.dadoLabel}>Previsão</Text>
+                <Text style={styles.dadoValue}>{obra.previsao}</Text>
+              </View>
+              <View style={styles.dadoCol}>
+                <Text style={styles.dadoLabel}>Orçamento</Text>
+                <Text style={styles.dadoValue}>{formatarMoeda(obra.orcamento)}</Text>
+              </View>
+              <View style={styles.dadoCol}>
+                <Text style={styles.dadoLabel}>Gasto</Text>
+                <Text style={styles.dadoValue}>{formatarMoeda(obra.gasto)} ({obra.orcamento > 0 ? Math.round((obra.gasto / obra.orcamento) * 100) : 0}%)</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginLeft: 10,
-  },
-  dashboardGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  dashboardCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    minHeight: 110,
-  },
-  cardTitle: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  cardValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    marginLeft: 8,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 8,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  newButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0F172A',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  newButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginLeft: 4,
-    fontSize: 14,
-  },
-  projectCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 24,
-  },
-  projectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  projectTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    flex: 1,
-    paddingRight: 10,
-  },
-  phaseContainer: {
-    alignItems: 'flex-end',
-  },
-  phaseLabel: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  phaseValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  badgeContainer: {
-    backgroundColor: '#3B82F6',
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  clientText: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 16,
-  },
-  progressSection: {
-    marginBottom: 16,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  progressLabel: {
-    fontSize: 14,
-    color: '#475569',
-  },
-  progressPercentage: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#0F172A',
-    borderRadius: 4,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginBottom: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  detailItem: {
-    width: '50%',
-    marginBottom: 12,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#0F172A',
-  },
+  mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
+  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24, backgroundColor: '#F8FAFC' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#0F172A' },
+  btnNovaObra: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, gap: 6 },
+  btnText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  scrollContainer: { flex: 1, paddingHorizontal: 24 },
+  metricsGrid: { flexDirection: 'row', gap: 16, marginBottom: 32, flexWrap: 'wrap' },
+  metricCard: { flex: 1, minWidth: '22%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 6, justifyContent: 'center', minHeight: 120 },
+  metricLabel: { fontSize: 13, color: '#64748B', fontWeight: '500', marginBottom: 12 },
+  metricValueContainer: { flexDirection: 'row', alignItems: 'center' },
+  metricIcon: { marginRight: 8 },
+  metricValue: { fontSize: 24, fontWeight: 'bold' },
+  metricSubtext: { fontSize: 11, color: '#94A3B8', marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginBottom: 20 },
+  obraCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 6 },
+  obraHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' },
+  obraNome: { fontSize: 16, fontWeight: 'bold', color: '#1E293B' },
+  statusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 6 },
+  statusText: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
+  faseContainer: { alignItems: 'flex-end' },
+  faseLabel: { fontSize: 11, color: '#94A3B8', marginBottom: 2 },
+  faseValue: { fontSize: 13, fontWeight: 'bold', color: '#1E293B' },
+  infoText: { fontSize: 13, color: '#64748B', marginBottom: 4 },
+  progressoSection: { marginTop: 16, marginBottom: 20 },
+  progressoLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  progressoTitle: { fontSize: 12, color: '#64748B' },
+  progressoPercentage: { fontSize: 12, fontWeight: 'bold', color: '#1E293B' },
+  progressBarBg: { height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: '#0F172A' },
+  dadosGrid: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 16 },
+  dadoCol: { flex: 1 },
+  dadoLabel: { fontSize: 11, color: '#94A3B8', marginBottom: 4 },
+  dadoValue: { fontSize: 13, fontWeight: 'bold', color: '#1E293B' }
 });
