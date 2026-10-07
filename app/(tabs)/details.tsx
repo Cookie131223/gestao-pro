@@ -138,12 +138,18 @@ export default function DetailsScreen() {
                 <Text style={styles.btnPrimaryText}>Ver Cronograma</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.btnSecondaryAction} onPress={() => alert('Abrindo gerenciamento avançado de materiais...')}>
+              <TouchableOpacity
+                style={styles.btnSecondaryAction}
+                onPress={() => router.push({ pathname: '/materials', params: { id: obra.id } })}
+              >
                 <Feather name="package" size={16} color="#1E293B" />
                 <Text style={styles.btnSecondaryText}>Gerenciar Materiais</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.btnSecondaryAction} onPress={() => alert('Abrindo galeria de fotos da obra...')}>
+              <TouchableOpacity
+                style={styles.btnSecondaryAction}
+                onPress={() => router.push({ pathname: '/gallery', params: { id: obra.id } })}
+              >
                 <Feather name="camera" size={16} color="#1E293B" />
                 <Text style={styles.btnSecondaryText}>Ver Fotos da Obra</Text>
               </TouchableOpacity>
