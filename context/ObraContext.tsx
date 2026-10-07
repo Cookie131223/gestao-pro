@@ -1,8 +1,9 @@
-// context/ObraContext.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-// Interfaces de Tipo para Typescript
+import { useAuth } from './AuthContext';
+import { getGestaoData, saveGestaoData } from '../lib/supabase-api';
+
 export interface Tarefa {
   id: string;
   titulo: string;
@@ -33,8 +34,8 @@ export interface Obra {
   progresso: number;
   inicio: string;
   previsao: string;
-  orcamento: number; // Armazenado como número puro para fazermos cálculos
-  gasto: number;     // Somatório dinâmico dos materiais
+  orcamento: number;
+  gasto: number;
   borderColor: string;
   tarefas: Tarefa[];
   materiais: Material[];
@@ -43,6 +44,9 @@ export interface Obra {
 
 interface ObraContextType {
   obras: Obra[];
+  loading: boolean;
+  syncing: boolean;
+  lastSync: Date | null;
   adicionarObra: (obra: Omit<Obra, 'id' | 'gasto' | 'tarefas' | 'materiais' | 'fotos'>) => void;
   adicionarTarefa: (obraId: string, tarefa: Omit<Tarefa, 'id'>) => void;
   adicionarMaterial: (obraId: string, material: Omit<Material, 'id'>) => void;
@@ -52,13 +56,12 @@ interface ObraContextType {
 
 const ObraContext = createContext<ObraContextType | undefined>(undefined);
 
-// Dados Iniciais Base (Caso o armazenamento esteja vazio)
 const dadosIniciais: Obra[] = [
   {
     id: '1',
-    nome: 'Casa Residential - Jardim das Flores',
+    nome: 'Casa Residencial - Jardim das Flores',
     status: 'Em Andamento',
-    statusColor: '#3B82F6',
+    statusColor: '#2563EB',
     cliente: 'João Silva',
     endereco: 'Rua das Flores, 123 - Jardim das Flores',
     fase: 'Estrutura',
@@ -67,7 +70,7 @@ const dadosIniciais: Obra[] = [
     previsao: '29/06/2026',
     orcamento: 280000,
     gasto: 126000,
-    borderColor: '#3B82F6',
+    borderColor: '#2563EB',
     tarefas: [
       {
         id: 't1',
@@ -79,10 +82,10 @@ const dadosIniciais: Obra[] = [
         status: 'Em Andamento',
         inicio: '24/04/2026',
         prazo: '27/04/2026',
-      }
+      },
     ],
     materiais: [],
-    fotos: []
+    fotos: [],
   },
   {
     id: '2',
@@ -109,46 +112,82 @@ const dadosIniciais: Obra[] = [
         status: 'Pendente',
         inicio: '28/04/2026',
         prazo: '05/05/2026',
-      }
+      },
     ],
     materiais: [],
-    fotos: []
-  }
+    fotos: [],
+  },
 ];
 
 export function ObraProvider({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth();
   const [obras, setObras] = useState<Obra[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
-  // Carregar dados salvos ao iniciar o app
+  const storageKey = session?.user.id ? `@obramax:obras:${session.user.id}` : null;
+
   useEffect(() => {
-    async function carregarDados() {
-      try {
-        const dadosSalvos = await AsyncStorage.getItem('@obramax:obras');
-        if (dadosSalvos) {
-          setObras(JSON.parse(dadosSalvos));
-        } else {
-          setObras(dadosIniciais);
-          await AsyncStorage.setItem('@obramax:obras', JSON.stringify(dadosIniciais));
-        }
-      } catch (error) {
-        console.error('Erro ao carregar do AsyncStorage', error);
-        setObras(dadosIniciais);
+    let active = true;
+
+    (async () => {
+      if (!session || !storageKey) {
+        setObras([]);
+        setLoading(false);
+        return;
       }
-    }
-    carregarDados();
-  }, []);
 
-  // Salvar automaticamente no AsyncStorage sempre que a lista mudar
-  const salvarDados = async (novasObras: Obra[]) => {
+      setLoading(true);
+
+      try {
+        const remote = await getGestaoData(session.access_token, session.user.id);
+
+        if (!active) return;
+
+        if (remote?.obras && Array.isArray(remote.obras)) {
+          setObras(remote.obras as Obra[]);
+          await AsyncStorage.setItem(storageKey, JSON.stringify(remote.obras));
+          setLastSync(remote.updated_at ? new Date(remote.updated_at) : new Date());
+          return;
+        }
+
+        const local = await AsyncStorage.getItem(storageKey);
+        const initial = local ? (JSON.parse(local) as Obra[]) : dadosIniciais;
+        setObras(initial);
+        await AsyncStorage.setItem(storageKey, JSON.stringify(initial));
+        await saveGestaoData(session.access_token, session.user.id, initial);
+        setLastSync(new Date());
+      } catch {
+        const local = await AsyncStorage.getItem(storageKey);
+        if (active) setObras(local ? JSON.parse(local) : dadosIniciais);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user.id, session?.access_token, storageKey]);
+
+  async function persist(next: Obra[]) {
+    setObras(next);
+
+    if (!session || !storageKey) return;
+
     try {
-      setObras(novasObras);
-      await AsyncStorage.setItem('@obramax:obras', JSON.stringify(novasObras));
+      setSyncing(true);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(next));
+      await saveGestaoData(session.access_token, session.user.id, next);
+      setLastSync(new Date());
     } catch (error) {
-      console.error('Erro ao salvar no AsyncStorage', error);
+      console.error('Erro ao sincronizar dados', error);
+    } finally {
+      setSyncing(false);
     }
-  };
+  }
 
-  // Função 1: Criar Nova Obra
   const adicionarObra = (novaObra: Omit<Obra, 'id' | 'gasto' | 'tarefas' | 'materiais' | 'fotos'>) => {
     const obraCompleta: Obra = {
       ...novaObra,
@@ -156,75 +195,76 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
       gasto: 0,
       tarefas: [],
       materiais: [],
-      fotos: []
+      fotos: [],
     };
-    salvarDados([...obras, obraCompleta]);
+    void persist([...obras, obraCompleta]);
   };
 
-  // Função 2: Adicionar Tarefa ao Cronograma de uma Obra
   const adicionarTarefa = (obraId: string, tarefa: Omit<Tarefa, 'id'>) => {
-    const novasObras = obras.map(obra => {
-      if (obra.id === obraId) {
-        const novaT = { ...tarefa, id: Date.now().toString() };
-        return { ...obra, tarefas: [...obra.tarefas, novaT] };
-      }
-      return obra;
-    });
-    salvarDados(novasObras);
+    const novas = obras.map((obra) =>
+      obra.id === obraId
+        ? { ...obra, tarefas: [...obra.tarefas, { ...tarefa, id: Date.now().toString() }] }
+        : obra
+    );
+    void persist(novas);
   };
 
-  // Função 3: Adicionar Insumo/Material (Atualiza os gastos automaticamente)
   const adicionarMaterial = (obraId: string, material: Omit<Material, 'id'>) => {
-    const novasObras = obras.map(obra => {
-      if (obra.id === obraId) {
-        const novoM = { ...material, id: Date.now().toString() };
-        const listaMateriais = [...obra.materiais, novoM];
-        const novoGasto = listaMateriais.reduce((acc, item) => acc + item.valor, 0);
-        return { ...obra, materiais: listaMateriais, gasto: novoGasto };
-      }
-      return obra;
+    const novas = obras.map((obra) => {
+      if (obra.id !== obraId) return obra;
+
+      const materiais = [...obra.materiais, { ...material, id: Date.now().toString() }];
+      const gasto = materiais.reduce((acc, item) => acc + item.valor, 0);
+
+      return { ...obra, materiais, gasto };
     });
-    salvarDados(novasObras);
+    void persist(novas);
   };
 
-  // Função 4: Adicionar URL/Uri de Foto tirada ou carregada
   const adicionarFoto = (obraId: string, fotoUri: string) => {
-    const novasObras = obras.map(obra => {
-      if (obra.id === obraId) {
-        return { ...obra, fotos: [...obra.fotos, fotoUri] };
-      }
-      return obra;
-    });
-    salvarDados(novasObras);
+    void persist(
+      obras.map((obra) =>
+        obra.id === obraId ? { ...obra, fotos: [...obra.fotos, fotoUri] } : obra
+      )
+    );
   };
 
-  // Função 5: Alternar/Atualizar Status das tarefas e recalcular progresso da obra
   const atualizarStatusTarefa = (obraId: string, tarefaId: string, novoStatus: Tarefa['status']) => {
-    const novasObras = obras.map(obra => {
-      if (obra.id === obraId) {
-        const tarefasAtualizadas = obra.tarefas.map(t => t.id === tarefaId ? { ...t, status: novoStatus } : t);
-        
-        // Regra de Negócio: Calcular progresso baseado na quantidade de tarefas concluídas
-        const concluidas = tarefasAtualizadas.filter(t => t.status === 'Concluído').length;
-        const total = tarefasAtualizadas.length;
-        const novoProgresso = total > 0 ? Math.round((concluidas / total) * 100) : obra.progresso;
+    const novas = obras.map((obra) => {
+      if (obra.id !== obraId) return obra;
 
-        return { ...obra, tarefas: tarefasAtualizadas, progresso: novoProgresso };
-      }
-      return obra;
+      const tarefas = obra.tarefas.map((t) =>
+        t.id === tarefaId ? { ...t, status: novoStatus } : t
+      );
+      const concluidas = tarefas.filter((t) => t.status === 'Concluído').length;
+      const progresso = tarefas.length > 0 ? Math.round((concluidas / tarefas.length) * 100) : obra.progresso;
+
+      return { ...obra, tarefas, progresso };
     });
-    salvarDados(novasObras);
+
+    void persist(novas);
   };
 
-  return (
-    <ObraContext.Provider value={{ obras, adicionarObra, adicionarTarefa, adicionarMaterial, adicionarFoto, atualizarStatusTarefa }}>
-      {children}
-    </ObraContext.Provider>
+  const value = useMemo(
+    () => ({
+      obras,
+      loading,
+      syncing,
+      lastSync,
+      adicionarObra,
+      adicionarTarefa,
+      adicionarMaterial,
+      adicionarFoto,
+      atualizarStatusTarefa,
+    }),
+    [obras, loading, syncing, lastSync]
   );
+
+  return <ObraContext.Provider value={value}>{children}</ObraContext.Provider>;
 }
 
 export function useObras() {
   const context = useContext(ObraContext);
-  if (!context) throw new Error('useObras deve ser usado dentro de um ObraProvider');
+  if (!context) throw new Error('useObras deve ser usado dentro de ObraProvider');
   return context;
 }
