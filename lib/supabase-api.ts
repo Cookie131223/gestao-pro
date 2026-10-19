@@ -10,6 +10,7 @@ export type AuthSession = {
   access_token: string;
   refresh_token: string;
   expires_in?: number;
+  expires_at?: number;
   token_type?: string;
   user: AuthUser;
 };
@@ -21,16 +22,25 @@ function config() {
   return { url: SUPABASE_URL, key: SUPABASE_KEY };
 }
 
+export class ApiError extends Error {
+  constructor(message: string, public status: number) { super(message); }
+}
+
+export class SyncConflictError extends Error {
+  constructor() { super('Os dados foram alterados em outro dispositivo.'); }
+}
+
 async function parseResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       data?.msg ||
         data?.message ||
         data?.error_description ||
         data?.error ||
-        'Erro ao comunicar com o servidor.'
+        'Erro ao comunicar com o servidor.',
+      response.status
     );
   }
 
@@ -96,24 +106,21 @@ export async function getGestaoData(accessToken: string, userId: string) {
   return data?.[0] || null;
 }
 
-export async function saveGestaoData(accessToken: string, userId: string, obras: unknown[]) {
+/** Compare-and-swap: a stale snapshot can never overwrite a newer revision. */
+export async function saveGestaoData(accessToken: string, userId: string, obras: unknown[], expectedRevision: string | null): Promise<string> {
   const { url } = config();
-  const response = await fetch(
-    `${url}/rest/v1/gestao_user_data?on_conflict=user_id`,
-    {
-      method: 'POST',
-      headers: authHeaders(accessToken, 'resolution=merge-duplicates,return=minimal'),
-      body: JSON.stringify({
-        user_id: userId,
-        obras,
-        updated_at: new Date().toISOString(),
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    await parseResponse(response);
-  }
+  const updatedAt = new Date(Math.max(Date.now(), expectedRevision ? Date.parse(expectedRevision) + 1 : 0)).toISOString();
+  const filter = expectedRevision === null ? '' : `?user_id=eq.${encodeURIComponent(userId)}&updated_at=eq.${encodeURIComponent(expectedRevision)}`;
+  const response = await fetch(`${url}/rest/v1/gestao_user_data${filter}`, {
+    method: expectedRevision === null ? 'POST' : 'PATCH',
+    headers: authHeaders(accessToken, 'return=representation'),
+    body: JSON.stringify({ user_id: userId, obras, updated_at: updatedAt }),
+  });
+  if (response.status === 409) throw new SyncConflictError();
+  const rows = await parseResponse(response);
+  if (!Array.isArray(rows) || rows.length !== 1) throw new SyncConflictError();
+  if (!rows[0].updated_at) throw new Error('O servidor não confirmou a versão salva.');
+  return rows[0].updated_at;
 }
 
 

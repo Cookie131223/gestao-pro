@@ -19,7 +19,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { session } = useAuth();
-  const { obras, loading, syncing, lastSync, syncError, retrySync } = useObras();
+  const { obras, loading, syncing, lastSync, syncError, retrySync, syncConflicts, resolveSync } = useObras();
   const [search, setSearch] = useState('');
 
   const compact = width < 720;
@@ -93,9 +93,20 @@ export default function DashboardScreen() {
           {syncError && (
             <View style={{ marginTop: 10, gap: 8 }}>
               <Text accessibilityRole="alert" style={{ color: '#B91C1C', fontSize: 13 }}>{syncError}</Text>
+              {syncConflicts > 0 ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <TouchableOpacity accessibilityRole="button" disabled={syncing} onPress={() => resolveSync('local')} style={styles.emptyButton}>
+                    <Text style={styles.emptyButtonText}>Priorizar minhas alterações</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity accessibilityRole="button" disabled={syncing} onPress={() => resolveSync('remote')} style={styles.emptyButton}>
+                    <Text style={styles.emptyButtonText}>Priorizar alterações da nuvem</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
               <TouchableOpacity accessibilityRole="button" disabled={syncing} onPress={retrySync} style={styles.emptyButton}>
                 <Text style={styles.emptyButtonText}>{syncing ? 'Sincronizando...' : 'Tentar novamente'}</Text>
               </TouchableOpacity>
+              )}
             </View>
           )}
         </View>

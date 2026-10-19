@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from './AuthContext';
-import { getGestaoData, saveGestaoData } from '../lib/supabase-api';
+import { getGestaoData, saveGestaoData, SyncConflictError } from '../lib/supabase-api';
+import { mergeSnapshots } from '../lib/merge-snapshots';
 
 export interface Tarefa {
   id: string;
@@ -49,6 +50,8 @@ interface ObraContextType {
   lastSync: Date | null;
   syncError: string | null;
   retrySync: () => void;
+  syncConflicts: number;
+  resolveSync: (prefer: 'local' | 'remote') => void;
   adicionarObra: (obra: Omit<Obra, 'id' | 'gasto' | 'tarefas' | 'materiais' | 'fotos'>) => void;
   adicionarTarefa: (obraId: string, tarefa: Omit<Tarefa, 'id'>) => void;
   adicionarMaterial: (obraId: string, material: Omit<Material, 'id'>) => void;
@@ -56,131 +59,175 @@ interface ObraContextType {
   atualizarStatusTarefa: (obraId: string, tarefaId: string, novoStatus: Tarefa['status']) => void;
 }
 
+function createId() {
+  return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 const ObraContext = createContext<ObraContextType | undefined>(undefined);
 
 export function ObraProvider({ children }: { children: React.ReactNode }) {
-  const { session } = useAuth();
+  const { session, getAccessToken } = useAuth();
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
-
   const [syncError, setSyncError] = useState<string | null>(null);
-  const localQueue = useRef<Promise<void>>(Promise.resolve());
-  const queue = useRef<Promise<void>>(Promise.resolve());
+  const [syncConflicts, setSyncConflicts] = useState(0);
   const latest = useRef<Obra[]>([]);
+  const baseline = useRef<Obra[] | null>(null);
+  const busy = useRef(false);
   const owner = useRef(session?.user.id);
+  const tokenGetter = useRef(getAccessToken);
+  tokenGetter.current = getAccessToken;
   owner.current = session?.user.id;
-
+  const generation = useRef(0);
+  const localQueue = useRef<Promise<void>>(Promise.resolve());
+  const conflictCount = useRef(0);
   const storageKey = session?.user.id ? `@obramax:obras:${session.user.id}` : null;
 
+  function cache(key: string, next: Obra[], base: Obra[] | null, pending: boolean) {
+    // One envelope keeps the local snapshot and its merge baseline together.
+    localQueue.current = localQueue.current.catch(() => {}).then(async () => {
+      await AsyncStorage.setItem(`${key}:snapshot`, JSON.stringify({ obras: next, base, pending }));
+      await AsyncStorage.setItem(key, JSON.stringify(next));
+      if (!pending) await AsyncStorage.removeItem(`${key}:pending`);
+    });
+    return localQueue.current;
+  }
+
   useEffect(() => {
+    const epoch = ++generation.current;
     let active = true;
-
-    (async () => {
-      if (!session || !storageKey) {
-        latest.current = [];
-        setObras([]);
-        setSyncError(null);
-        setLastSync(null);
-        setSyncing(false);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setLastSync(null);
-      setSyncError(null);
-
+    busy.current = false;
+    conflictCount.current = 0;
+    baseline.current = null;
+    latest.current = [];
+    setObras([]);
+    setSyncing(false);
+    setSyncConflicts(0);
+    setLastSync(null);
+    setSyncError(null);
+    setLoading(true);
+    void (async () => {
+      if (!storageKey || !owner.current) { setLoading(false); return; }
+      const userId = owner.current;
       try {
-        const pending = await AsyncStorage.getItem(`${storageKey}:pending`);
-        if (pending) {
-          const recovered = JSON.parse(pending) as Obra[];
-          if (!active) return;
-          latest.current = recovered;
-          setObras(recovered);
+        await localQueue.current.catch(() => {});
+        const raw = await AsyncStorage.getItem(`${storageKey}:snapshot`);
+        const snapshot = raw ? JSON.parse(raw) : null;
+        const legacyPending = await AsyncStorage.getItem(`${storageKey}:pending`);
+        if (!active) return;
+        if (snapshot?.pending || legacyPending) {
+          latest.current = snapshot?.pending ? snapshot.obras : JSON.parse(legacyPending!);
+          baseline.current = snapshot?.pending ? snapshot.base : null;
+          setObras(latest.current);
           setSyncError('Há alterações locais pendentes. Tente sincronizar novamente.');
           return;
         }
-        const remote = await getGestaoData(session.access_token, session.user.id);
-
+        const remote = await getGestaoData(await tokenGetter.current(), userId);
         if (!active) return;
-
-        if (remote?.obras && Array.isArray(remote.obras)) {
-          latest.current = remote.obras as Obra[];
-          setObras(remote.obras as Obra[]);
-          await AsyncStorage.setItem(storageKey, JSON.stringify(remote.obras));
-          setLastSync(remote.updated_at ? new Date(remote.updated_at) : new Date());
-          return;
-        }
-
-        const local = await AsyncStorage.getItem(storageKey);
-        const initial = local ? (JSON.parse(local) as Obra[]) : [];
-        latest.current = initial;
-        setObras(initial);
-        await AsyncStorage.setItem(storageKey, JSON.stringify(initial));
-        await saveGestaoData(session.access_token, session.user.id, initial);
-        setLastSync(new Date());
+        latest.current = remote?.obras || [];
+        baseline.current = latest.current;
+        setObras(latest.current);
+        setLastSync(remote?.updated_at ? new Date(remote.updated_at) : null);
+        await cache(storageKey, latest.current, baseline.current, false);
       } catch {
-        const local = await AsyncStorage.getItem(storageKey);
+        const raw = await AsyncStorage.getItem(`${storageKey}:snapshot`).catch(() => null);
+        const local = await AsyncStorage.getItem(storageKey).catch(() => null);
         if (active) {
-          latest.current = local ? JSON.parse(local) : [];
+          const snapshot = raw ? JSON.parse(raw) : null;
+          latest.current = snapshot?.obras || (local ? JSON.parse(local) : []);
+          baseline.current = snapshot?.base ?? null;
           setObras(latest.current);
           setSyncError('Não foi possível carregar os dados da nuvem. Verifique a conexão.');
         }
       } finally {
-        if (active) setLoading(false);
+        if (active && generation.current === epoch) setLoading(false);
       }
     })();
+    return () => { active = false; };
+  }, [session?.user.id, storageKey]);
 
-    return () => {
-      active = false;
-    };
-  }, [session?.user.id, session?.access_token, storageKey]);
+  async function synchronize(prefer?: 'local' | 'remote') {
+    if (busy.current || !storageKey || !owner.current) return;
+    const epoch = generation.current;
+    const userId = owner.current;
+    const current = () => generation.current === epoch && owner.current === userId;
+    busy.current = true;
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await localQueue.current;
+        if (!current()) return;
+        const token = await tokenGetter.current();
+        const remote = await getGestaoData(token, userId);
+        if (!current()) return;
+        const remoteObras = (remote?.obras || []) as Obra[];
+        const before = latest.current;
+        const result = baseline.current === null && remoteObras.length > 0
+          ? { value: prefer === 'remote' ? remoteObras : before, conflicts: ['legacy'] }
+          : mergeSnapshots(baseline.current || [], before, remoteObras, prefer);
+        if (result.conflicts.length && !prefer) {
+          conflictCount.current = result.conflicts.length;
+          setSyncConflicts(conflictCount.current);
+          setSyncError(baseline.current === null
+            ? 'Esta cópia local é antiga e não tem histórico para combinar. Escolha entre manter a versão deste dispositivo ou a versão da nuvem.'
+            : 'O mesmo conteúdo foi alterado em outro dispositivo. Escolha quais alterações manter. As demais serão combinadas.');
+          return;
+        }
+        let revision: string;
+        try {
+          revision = await saveGestaoData(token, userId, result.value, remote?.updated_at ?? null);
+        } catch (error) {
+          if (error instanceof SyncConflictError) continue;
+          throw error;
+        }
+        if (!current()) return;
+        // Preserve edits made while the network request was in progress.
+        const moreEdits = latest.current !== before;
+        const rebased = moreEdits ? mergeSnapshots(before, latest.current, result.value, prefer) : { value: result.value, conflicts: [] };
+        const previousBaseline = baseline.current;
+        baseline.current = rebased.conflicts.length && !prefer ? previousBaseline : result.value;
+        latest.current = rebased.value;
+        setObras(latest.current);
+        setLastSync(new Date(revision));
+        conflictCount.current = rebased.conflicts.length;
+        setSyncConflicts(conflictCount.current);
+        await cache(storageKey, latest.current, baseline.current, moreEdits);
+        if (!current()) return;
+        if (rebased.conflicts.length && !prefer) {
+          setSyncError('Há alterações simultâneas para revisar antes de continuar.');
+          return;
+        }
+        setSyncError(null);
+        if (!moreEdits && latest.current === rebased.value) return;
+      }
+      setSyncError('Os dados continuam mudando em outro dispositivo. Suas alterações estão salvas neste dispositivo; tente novamente.');
+    } catch (error) {
+      if (current()) setSyncError(error instanceof Error ? error.message : 'Não foi possível confirmar o salvamento na nuvem. Tente novamente.');
+    } finally {
+      if (current()) { busy.current = false; setSyncing(false); }
+    }
+  }
 
   function persist(next: Obra[]) {
     latest.current = next;
     setObras(next);
-    if (!session || !storageKey) return;
-    const userId = session.user.id;
-    const token = session.access_token;
-    setSyncing(true);
-    setSyncError(null);
-    const localWrite = localQueue.current.catch(() => {}).then(async () => {
-      await AsyncStorage.setItem(`${storageKey}:pending`, JSON.stringify(next));
-      await AsyncStorage.setItem(storageKey, JSON.stringify(next));
-    });
-    localQueue.current = localWrite;
-    // Attach a handler immediately; the remote queue still observes the rejection.
-    void localWrite.catch(() => {});
-    queue.current = queue.current.catch(() => {}).then(async () => {
-      try {
-        await localWrite;
-        if (owner.current !== userId) return;
-        await saveGestaoData(token, userId, next);
-        if (owner.current === userId && latest.current === next) {
-          await AsyncStorage.removeItem(`${storageKey}:pending`);
-          setLastSync(new Date());
-          setSyncError(null);
-        }
-      } catch {
-        if (owner.current === userId) {
-          setSyncError('Não foi possível confirmar o salvamento na nuvem. Tente novamente.');
-        }
-      } finally {
-        if (owner.current === userId && latest.current === next) setSyncing(false);
-      }
-    });
+    if (!storageKey) return;
+    void cache(storageKey, next, baseline.current, true).then(() => {
+      if (!conflictCount.current) void synchronize();
+    }).catch(() => setSyncError('Não foi possível salvar neste dispositivo. Mantenha esta página aberta e tente novamente.'));
   }
-
-  function retrySync() {
-    if (!syncing) persist(latest.current);
-  }
+  function retrySync() { void synchronize(); }
+  function resolveSync(prefer: 'local' | 'remote') { void synchronize(prefer); }
 
   const adicionarObra = (novaObra: Omit<Obra, 'id' | 'gasto' | 'tarefas' | 'materiais' | 'fotos'>) => {
     const obraCompleta: Obra = {
       ...novaObra,
-      id: Date.now().toString(),
+      id: createId(),
       gasto: 0,
       tarefas: [],
       materiais: [],
@@ -192,7 +239,7 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
   const adicionarTarefa = (obraId: string, tarefa: Omit<Tarefa, 'id'>) => {
     const novas = latest.current.map((obra) =>
       obra.id === obraId
-        ? { ...obra, tarefas: [...obra.tarefas, { ...tarefa, id: Date.now().toString() }] }
+        ? { ...obra, tarefas: [...obra.tarefas, { ...tarefa, id: createId() }] }
         : obra
     );
     void persist(novas);
@@ -202,7 +249,7 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
     const novas = latest.current.map((obra) => {
       if (obra.id !== obraId) return obra;
 
-      const materiais = [...obra.materiais, { ...material, id: Date.now().toString() }];
+      const materiais = [...obra.materiais, { ...material, id: createId() }];
       const gasto = obra.gasto + material.valor;
 
       return { ...obra, materiais, gasto };
@@ -241,6 +288,8 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
       lastSync,
       syncError,
       retrySync,
+      syncConflicts,
+      resolveSync,
       adicionarObra,
       adicionarTarefa,
       adicionarMaterial,

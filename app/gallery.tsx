@@ -20,7 +20,7 @@ import { createGestaoPhotoSignedUrl, uploadGestaoPhoto } from '../lib/supabase-a
 export default function GalleryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { session } = useAuth();
+  const { session, getAccessToken } = useAuth();
   const { obras, adicionarFoto } = useObras();
 
   const obraId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -36,10 +36,15 @@ export default function GalleryScreen() {
     (async () => {
       if (!obra || !session) return;
 
+      let token: string;
+      try { token = await getAccessToken(); } catch {
+        if (active) setUrls(Object.fromEntries(obra.fotos.map((path) => [path, ''])));
+        return;
+      }
       const entries = await Promise.all(
         obra.fotos.map(async (path) => {
           try {
-            const url = await createGestaoPhotoSignedUrl(session.access_token, path, 3600);
+            const url = await createGestaoPhotoSignedUrl(token, path, 3600);
             return [path, url] as const;
           } catch {
             return [path, ''] as const;
@@ -91,7 +96,7 @@ export default function GalleryScreen() {
       const blob = await response.blob();
 
       const path = await uploadGestaoPhoto(
-        session.access_token,
+        await getAccessToken(),
         session.user.id,
         obra.id,
         asset.fileName || `foto-${Date.now()}.jpg`,
@@ -101,7 +106,7 @@ export default function GalleryScreen() {
 
       adicionarFoto(obra.id, path);
 
-      const signed = await createGestaoPhotoSignedUrl(session.access_token, path, 3600);
+      const signed = await createGestaoPhotoSignedUrl(await getAccessToken(), path, 3600);
       setUrls((current) => ({ ...current, [path]: signed }));
     } catch (error) {
       Alert.alert('Erro', error instanceof Error ? error.message : 'Não foi possível adicionar a foto.');
