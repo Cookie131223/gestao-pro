@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { useObras } from '../context/ObraContext';
+import { parseBRL } from '../lib/currency';
 
 export default function MaterialsScreen() {
   const router = useRouter();
@@ -42,7 +43,8 @@ export default function MaterialsScreen() {
   }
 
   function salvar() {
-    const parsedValue = Number(valor.replace(/./g, '').replace(',', '.'));
+    if (!obra) return;
+    const parsedValue = parseBRL(valor);
 
     if (!nome.trim() || !quantidade.trim() || !Number.isFinite(parsedValue) || parsedValue <= 0) {
       Alert.alert('Atenção', 'Preencha nome, quantidade e valor corretamente.');

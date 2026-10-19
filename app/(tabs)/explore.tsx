@@ -78,22 +78,20 @@ export default function CronogramaScreen() {
                   </View>
                 </View>
 
-                {/* Botão Interativo para Alternar Status da Tarefa ao Clicar */}
-                <TouchableOpacity 
-                  style={[
-                    styles.statusBadge, 
-                    { backgroundColor: tarefa.status === 'Concluído' ? '#10B981' : tarefa.status === 'Em Andamento' ? '#3B82F6' : '#64748B' }
-                  ]}
-                  onPress={() => {
-                    // Muda o status ciclicamente: Pendente -> Em Andamento -> Concluído -> Pendente
-                    const proximoStatus = 
-                      tarefa.status === 'Pendente' ? 'Em Andamento' : 
-                      tarefa.status === 'Em Andamento' ? 'Concluído' : 'Pendente';
-                    atualizarStatusTarefa(tarefa.obraId, tarefa.id, proximoStatus);
-                  }}
-                >
-                  <Text style={styles.badgeText}>{tarefa.status} 🔄</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, maxWidth: '100%' }}>
+                  {(['Pendente', 'Em Andamento', 'Concluído'] as const).map((status) => (
+                    <TouchableOpacity
+                      key={status}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${tarefa.titulo}: marcar como ${status}`}
+                      accessibilityState={{ selected: tarefa.status === status }}
+                      style={[styles.statusBadge, { backgroundColor: tarefa.status === status ? '#2563EB' : '#E2E8F0' }]}
+                      onPress={() => atualizarStatusTarefa(tarefa.obraId, tarefa.id, status)}
+                    >
+                      <Text style={[styles.badgeText, { color: tarefa.status === status ? '#FFFFFF' : '#334155' }]}>{status}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
 
               {/* Grid de Informações Internas */}
@@ -132,14 +130,14 @@ const styles = StyleSheet.create({
   scrollContainer: { flex: 1, padding: 24, paddingTop: 32 },
   pageTitle: { fontSize: 24, fontWeight: 'bold', color: '#0F172A', marginBottom: 24 },
   gridSummary: { flexDirection: 'row', gap: 12, marginBottom: 28, flexWrap: 'wrap' },
-  miniCard: { flex: 1, minWidth: '22%', backgroundColor: '#FFF', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 4, borderLeftColor: '#64748B' },
+  miniCard: { flex: 1, minWidth: 120, backgroundColor: '#FFF', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 4, borderLeftColor: '#64748B' },
   miniLabel: { fontSize: 11, color: '#64748B', marginBottom: 4 },
   miniVal: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 8 },
   emptyText: { color: '#64748B', fontSize: 14 },
   taskCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 4 },
-  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  titleContainer: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
+  taskHeader: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  titleContainer: { flex: 1, minWidth: 180, flexDirection: 'row', alignItems: 'flex-start' },
   taskTitle: { fontSize: 15, fontWeight: 'bold', color: '#1E293B', marginBottom: 2 },
   taskDesc: { fontSize: 12, color: '#64748B' },
   statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, flexDirection: 'row', alignItems: 'center' },
@@ -148,7 +146,7 @@ const styles = StyleSheet.create({
   infoBlock: { flex: 1 },
   infoLabel: { fontSize: 11, color: '#94A3B8', marginBottom: 2 },
   infoValue: { fontSize: 13, fontWeight: '600', color: '#1E293B' },
-  taskFooter: { flexDirection: 'row', gap: 20, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12, marginTop: 4 },
+  taskFooter: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12, marginTop: 4 },
   dateBlock: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dateText: { fontSize: 12, color: '#1E293B', fontWeight: '500' }
 });

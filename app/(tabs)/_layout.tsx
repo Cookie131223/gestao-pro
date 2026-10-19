@@ -28,7 +28,7 @@ export default function TabLayout() {
                 <Feather name="layers" size={22} color="#FFFFFF" />
               </View>
               <View>
-                <Text style={styles.brandName}>ObraMax</Text>
+                <Text style={styles.brandName}>GestãoPro</Text>
                 <Text style={styles.brandSub}>Gestão de Obras</Text>
               </View>
             </View>

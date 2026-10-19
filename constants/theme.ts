@@ -23,6 +23,11 @@ export const COLORS = {
   border: '#E2E8F0',
 };
 
+export const Colors = {
+  light: { text: '#0F172A', background: '#F8FAFC', tint: tintColorLight, icon: '#64748B', tabIconDefault: '#64748B', tabIconSelected: tintColorLight },
+  dark: { text: '#F8FAFC', background: '#0F172A', tint: tintColorDark, icon: '#CBD5E1', tabIconDefault: '#CBD5E1', tabIconSelected: tintColorDark },
+};
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

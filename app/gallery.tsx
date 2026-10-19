@@ -27,6 +27,7 @@ export default function GalleryScreen() {
   const obra = obras.find((item) => item.id === obraId);
 
   const [uploading, setUploading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function GalleryScreen() {
     return () => {
       active = false;
     };
-  }, [obra?.fotos, session?.access_token]);
+  }, [obra?.fotos, session?.access_token, retryCount]);
 
   if (!obra || !session) {
     return (
@@ -66,6 +67,7 @@ export default function GalleryScreen() {
   }
 
   async function adicionarImagem() {
+    if (!obra || !session) return;
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -114,7 +116,7 @@ export default function GalleryScreen() {
         <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={20} color="#0F172A" />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 150 }}>
           <Text style={styles.eyebrow}>GALERIA</Text>
           <Text style={styles.title}>{obra.nome}</Text>
         </View>
@@ -138,7 +140,7 @@ export default function GalleryScreen() {
             </View>
             <Text style={styles.emptyTitle}>Nenhuma foto cadastrada</Text>
             <Text style={styles.emptyText}>Adicione imagens da evolução da obra para acompanhar o histórico.</Text>
-            <TouchableOpacity style={styles.primaryButton} onPress={adicionarImagem}>
+            <TouchableOpacity style={styles.primaryButton} onPress={adicionarImagem} disabled={uploading}>
               <Text style={styles.primaryText}>Adicionar primeira foto</Text>
             </TouchableOpacity>
           </View>
@@ -148,6 +150,10 @@ export default function GalleryScreen() {
               <View key={path} style={styles.photoCard}>
                 {urls[path] ? (
                   <Image source={{ uri: urls[path] }} style={styles.image} resizeMode="cover" />
+                ) : urls[path] === '' ? (
+                  <TouchableOpacity accessibilityRole="button" onPress={() => setRetryCount((value) => value + 1)} style={[styles.image, styles.imagePlaceholder]}>
+                    <Text style={{ color: '#B91C1C', textAlign: 'center' }}>Não foi possível carregar. Toque para tentar novamente.</Text>
+                  </TouchableOpacity>
                 ) : (
                   <View style={[styles.image, styles.imagePlaceholder]}>
                     <ActivityIndicator color="#2563EB" />
@@ -170,6 +176,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#F8FAFC' },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 14,
     padding: 22,

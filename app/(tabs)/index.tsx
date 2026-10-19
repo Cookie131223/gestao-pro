@@ -19,7 +19,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { session } = useAuth();
-  const { obras, loading, syncing, lastSync } = useObras();
+  const { obras, loading, syncing, lastSync, syncError, retrySync } = useObras();
   const [search, setSearch] = useState('');
 
   const compact = width < 720;
@@ -83,13 +83,21 @@ export default function DashboardScreen() {
               <Feather name="cloud" size={14} color="#2563EB" />
             )}
             <Text style={styles.syncText}>
-              {syncing
+              {syncError ? 'Sincronização pendente' : syncing
                 ? 'Sincronizando...'
                 : lastSync
                   ? `Sincronizado às ${lastSync.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Nuvem conectada'}
+                  : 'Aguardando sincronização'}
             </Text>
           </View>
+          {syncError && (
+            <View style={{ marginTop: 10, gap: 8 }}>
+              <Text accessibilityRole="alert" style={{ color: '#B91C1C', fontSize: 13 }}>{syncError}</Text>
+              <TouchableOpacity accessibilityRole="button" disabled={syncing} onPress={retrySync} style={styles.emptyButton}>
+                <Text style={styles.emptyButtonText}>{syncing ? 'Sincronizando...' : 'Tentar novamente'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.metricsGrid}>

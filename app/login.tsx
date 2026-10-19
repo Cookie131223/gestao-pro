@@ -70,7 +70,7 @@ export default function LoginScreen() {
           <View style={styles.heroBadge}>
             <Feather name="layers" size={22} color="#FFFFFF" />
           </View>
-          <Text style={styles.heroTitle}>ObraMax Pro</Text>
+          <Text style={styles.heroTitle}>GestãoPro</Text>
           <Text style={styles.heroText}>
             Obras, cronogramas, materiais e progresso em um único lugar.
           </Text>
@@ -99,7 +99,7 @@ export default function LoginScreen() {
               <Feather name="layers" size={22} color="#FFFFFF" />
             </View>
             <View>
-              <Text style={styles.brand}>ObraMax</Text>
+              <Text style={styles.brand}>GestãoPro</Text>
               <Text style={styles.brandSub}>Gestão de Obras</Text>
             </View>
           </View>
