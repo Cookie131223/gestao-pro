@@ -1,9 +1,11 @@
 // app/(tabs)/explore.tsx
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useObras } from '../../context/ObraContext';
 
 export default function CronogramaScreen() {
+  const router = useRouter();
   const { obras, atualizarStatusTarefa } = useObras();
 
   // 🛠️ Mapeia e junta todas as tarefas de todas as obras em uma lista única
@@ -24,9 +26,12 @@ export default function CronogramaScreen() {
 
   return (
     <View style={styles.mainContainer}>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator>
         
         <Text style={styles.pageTitle}>Cronograma Geral</Text>
+        <TouchableOpacity accessibilityRole="button" onPress={() => router.push({ pathname: '/tasks', params: { create: '1' } })} style={{ backgroundColor: '#2563EB', padding: 14, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 20 }}>
+          <Text style={{ color: '#FFF', fontWeight: '700' }}>+ Adicionar tarefa</Text>
+        </TouchableOpacity>
 
         {/* Mini Cards de Status Dinâmicos */}
         <View style={styles.gridSummary}>

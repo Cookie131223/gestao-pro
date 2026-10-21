@@ -237,11 +237,12 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
   };
 
   const adicionarTarefa = (obraId: string, tarefa: Omit<Tarefa, 'id'>) => {
-    const novas = latest.current.map((obra) =>
-      obra.id === obraId
-        ? { ...obra, tarefas: [...obra.tarefas, { ...tarefa, id: createId() }] }
-        : obra
-    );
+    const novas = latest.current.map((obra) => {
+      if (obra.id !== obraId) return obra;
+      const tarefas = [...obra.tarefas, { ...tarefa, id: createId() }];
+      const progresso = Math.round(tarefas.filter((item) => item.status === 'Concluído').length / tarefas.length * 100);
+      return { ...obra, tarefas, progresso };
+    });
     void persist(novas);
   };
 

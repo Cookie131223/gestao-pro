@@ -58,7 +58,7 @@ export default function DashboardScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, compact && styles.contentCompact]}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator
       >
         <View style={[styles.header, compact && styles.headerCompact]}>
           <View style={{ flex: 1 }}>

@@ -189,3 +189,23 @@ test('offline pending data survives remount and merges changes from another devi
   assert.equal(server.read().obras[0].fotos[0], 'offline.jpg'); assert.equal(server.read().obras[0].gasto, 140);
   assert.equal(a().syncError, null);
 });
+
+const { validateTask, parseTaskDate } = load('lib/task-form.ts');
+test('task form requires project, title, responsible and real chronological dates', () => {
+  const task = { titulo: 'Instalar iluminação', responsavel: 'Equipe A', inicio: '21/10/2026', prazo: '22/10/2026', descricao: '', categoria: '', prioridade: 'Média', status: 'Pendente' };
+  assert.equal(validateTask('o1', task), null);
+  assert.ok(validateTask('', task)); assert.ok(validateTask('o1', { ...task, titulo: ' ' }));
+  assert.ok(validateTask('o1', { ...task, responsavel: ' ' }));
+  assert.ok(validateTask('o1', { ...task, prazo: '31/02/2026' }));
+  assert.ok(validateTask('o1', { ...task, prazo: '20/10/2026' }));
+  assert.equal(parseTaskDate('29/02/2025'), null); assert.notEqual(parseTaskDate('29/02/2024'), null);
+});
+test('created tasks persist under the selected project and update progress when moved', async () => {
+  const server = fakeServer(); const render = mountProvider(server, storage()); await flush();
+  render().adicionarTarefa('o1', { titulo: 'Nova tarefa', descricao: 'Descrição', categoria: 'Instalações', responsavel: 'Equipe A', prioridade: 'Alta', status: 'Concluído', inicio: '21/10/2026', prazo: '22/10/2026' });
+  await flush();
+  let saved = server.read().obras[0]; const task = saved.tarefas.find((task) => task.titulo === 'Nova tarefa');
+  assert.ok(task.id); assert.equal(saved.tarefas.length, 2); assert.equal(saved.progresso, 50);
+  render().atualizarStatusTarefa('o1', task.id, 'Em Andamento'); await flush();
+  saved = server.read().obras[0]; assert.equal(saved.progresso, 0); assert.equal(saved.tarefas.find((item) => item.id === task.id).status, 'Em Andamento');
+});

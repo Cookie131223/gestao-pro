@@ -49,6 +49,10 @@ export default function TabLayout() {
                 <Feather name="calendar" size={19} color={selected('/explore') ? '#2563EB' : '#64748B'} />
                 <Text style={[styles.navText, selected('/explore') && styles.navTextActive]}>Cronograma</Text>
               </TouchableOpacity>
+              <TouchableOpacity accessibilityRole="button" style={[styles.navItem, selected('/tasks') && styles.navItemActive]} onPress={() => router.push('/tasks')}>
+                <Feather name="columns" size={19} color={selected('/tasks') ? '#2563EB' : '#64748B'} />
+                <Text style={[styles.navText, selected('/tasks') && styles.navTextActive]}>Tarefas</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -101,6 +105,7 @@ export default function TabLayout() {
               tabBarIcon: ({ color }) => <Feather name="calendar" size={20} color={color} />,
             }}
           />
+          <Tabs.Screen name="tasks" options={{ title: 'Tarefas', tabBarIcon: ({ color }) => <Feather name="columns" size={20} color={color} /> }} />
           <Tabs.Screen name="details" options={{ href: null }} />
         </Tabs>
       </View>

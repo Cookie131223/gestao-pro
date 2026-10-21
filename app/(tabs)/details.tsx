@@ -1,11 +1,13 @@
 // app/(tabs)/details.tsx
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useObras } from '../../context/ObraContext';
 
 export default function DetailsScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compact = width < 720;
   const params = useLocalSearchParams();
   const { obras } = useObras();
 
@@ -37,22 +39,22 @@ export default function DetailsScreen() {
     <View style={styles.mainContainer}>
       
       {/* 🟢 TOP HEADER FIEL AO FIGMA */}
-      <View style={styles.topHeader}>
-        <View style={styles.headerLeftRow}>
+      <View style={[styles.topHeader, compact && { flexWrap: 'wrap', gap: 12 }]}>
+        <View style={[styles.headerLeftRow, { flex: 1, minWidth: 0 }]}>
           <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.backButton}>
             <Feather name="arrow-left" size={20} color="#0F172A" />
           </TouchableOpacity>
           <View style={styles.blueIconBox}>
             <Feather name="layers" size={20} color="#FFF" />
           </View>
-          <Text style={styles.headerTitle}>{obra.nome}</Text>
+          <Text style={[styles.headerTitle, { flexShrink: 1 }]}>{obra.nome}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: obra.statusColor }]}>
           <Text style={styles.badgeText}>{obra.status}</Text>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator>
         
         {/* 🟢 FILEIRA DE 4 CARDS INDICADORES */}
         <View style={styles.indicatorsGrid}>
@@ -100,7 +102,7 @@ export default function DetailsScreen() {
         <View style={styles.contentSplitRow}>
           
           {/* BLOCO DA ESQUERDA: VISÃO FINANCEIRA */}
-          <View style={styles.leftPanel}>
+          <View style={[styles.leftPanel, compact && { minWidth: 0, flexBasis: '100%' }]}>
             <View style={styles.panelHeader}>
               <Feather name="dollar-sign" size={18} color="#22C55E" />
               <Text style={styles.panelTitle}>Visão Financeira</Text>
@@ -133,6 +135,12 @@ export default function DetailsScreen() {
 
             {/* 🔥 BOTÕES DE AÇÃO INTEGRADOS */}
             <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity accessibilityRole="button" style={styles.btnPrimaryAction} onPress={() => router.push({ pathname: '/tasks', params: { id: obra.id, create: '1' } })}>
+                <Feather name="plus" size={16} color="#FFF" /><Text style={styles.btnPrimaryText}>Adicionar tarefa</Text>
+              </TouchableOpacity>
+              <TouchableOpacity accessibilityRole="button" style={styles.btnSecondaryAction} onPress={() => router.push({ pathname: '/tasks', params: { id: obra.id } })}>
+                <Feather name="columns" size={16} color="#1E293B" /><Text style={styles.btnSecondaryText}>Abrir quadro de tarefas</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.btnPrimaryAction} onPress={() => router.push('/explore')}>
                 <Feather name="clipboard" size={16} color="#FFF" />
                 <Text style={styles.btnPrimaryText}>Ver Cronograma</Text>
@@ -157,79 +165,24 @@ export default function DetailsScreen() {
           </View>
 
           {/* BLOCO DA DIREITA: CRONOGRAMA DA OBRA (LINHA DO TEMPO) */}
-          <View style={styles.rightPanel}>
+          <View style={[styles.rightPanel, compact && { minWidth: 0, flexBasis: '100%' }]}>
             <View style={styles.panelHeader}>
               <Feather name="calendar" size={18} color="#3B82F6" />
               <Text style={styles.panelTitle}>Cronograma da Obra</Text>
             </View>
 
-            {/* Lista Vertical de Etapas Fiel à imagem_0d1823.png */}
             <View style={styles.timelineContainer}>
-              
-              {/* Etapa 1: Fundação */}
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineNode, { backgroundColor: '#10B981' }]}>
-                  <Feather name="check" size={12} color="#FFF" />
+              {obra.tarefas.length === 0 ? (
+                <Text style={styles.cardSubValue}>Nenhuma tarefa cadastrada. Use “Adicionar tarefa” para planejar este projeto.</Text>
+              ) : obra.tarefas.map((tarefa) => (
+                <View key={tarefa.id} style={styles.timelineItem}>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineStageTitle}>{tarefa.titulo}</Text>
+                    <Text style={styles.timelineStageDate}>{tarefa.responsavel} · Prazo: {tarefa.prazo}</Text>
+                  </View>
+                  <Text style={styles.miniStatusText}>{tarefa.status}</Text>
                 </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineStageTitle}>Fundação</Text>
-                  <Text style={styles.timelineStageDate}>Jan 2026</Text>
-                </View>
-                <View style={[styles.miniStatusBadge, { backgroundColor: '#E6F4EA' }]}>
-                  <Text style={[styles.miniStatusText, { color: '#137333' }]}>Concluída</Text>
-                </View>
-              </View>
-
-              {/* Etapa 2: Estrutura */}
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineNode, { backgroundColor: '#3B82F6' }]}>
-                  <View style={styles.innerDotActive} />
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineStageTitle}>Estrutura</Text>
-                  <Text style={styles.timelineStageDate}>Mar 2026</Text>
-                </View>
-                <View style={[styles.miniStatusBadge, { backgroundColor: '#E8F0FE' }]}>
-                  <Text style={[styles.miniStatusText, { color: '#1A73E8' }]}>Em Andamento</Text>
-                </View>
-              </View>
-
-              {/* Etapa 3: Alvenaria */}
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineNode, { backgroundColor: '#CBD5E1' }]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineStageTitle}>Alvenaria</Text>
-                  <Text style={styles.timelineStageDate}>Abr 2026</Text>
-                </View>
-                <View style={[styles.miniStatusBadge, { backgroundColor: '#F1F5F9' }]}>
-                  <Text style={[styles.miniStatusText, { color: '#64748B' }]}>Pendente</Text>
-                </View>
-              </View>
-
-              {/* Etapa 4: Instalações */}
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineNode, { backgroundColor: '#CBD5E1' }]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineStageTitle}>Instalações</Text>
-                  <Text style={styles.timelineStageDate}>Mai 2026</Text>
-                </View>
-                <View style={[styles.miniStatusBadge, { backgroundColor: '#F1F5F9' }]}>
-                  <Text style={[styles.miniStatusText, { color: '#64748B' }]}>Pendente</Text>
-                </View>
-              </View>
-
-              {/* Etapa 5: Acabamento */}
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineNode, { backgroundColor: '#CBD5E1' }]} />
-                <View style={styles.timelineContent}>
-                  <Text style={styles.timelineStageTitle}>Acabamento</Text>
-                  <Text style={styles.timelineStageDate}>Jun 2026</Text>
-                </View>
-                <View style={[styles.miniStatusBadge, { backgroundColor: '#F1F5F9' }]}>
-                  <Text style={[styles.miniStatusText, { color: '#64748B' }]}>Pendente</Text>
-                </View>
-              </View>
-
+              ))}
             </View>
           </View>
 
