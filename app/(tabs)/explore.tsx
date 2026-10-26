@@ -117,7 +117,7 @@ export default function CronogramaScreen() {
                       <View style={{ width: larguraRotulo }} />
                       <View style={styles.ganttArea}>
                         {gantt.marcas.map((m, i) => (
-                          <Text key={i} style={[styles.regua, { left: `${(i / 6) * 100}%` as any }, i === 6 && { transform: [{ translateX: -40 }] }]}>{fmt(m)}</Text>
+                          <Text key={i} numberOfLines={1} style={[styles.regua, { left: `${(i / 6) * 100}%` as any }, i === 6 && { transform: [{ translateX: -64 }], textAlign: 'right' }]}>{fmt(m)}</Text>
                         ))}
                       </View>
                     </View>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   ganttArea: { flex: 1, height: 40, position: 'relative', justifyContent: 'center' },
   ganttGrade: { backgroundColor: C.surface2, borderTopWidth: 1, borderTopColor: C.surface },
   gradeLinha: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: C.line },
-  regua: { position: 'absolute', top: 14, fontFamily: F.body, fontSize: 11, color: C.inkMute, fontWeight: '600' },
+  regua: { position: 'absolute', top: 14, width: 64, fontFamily: F.body, fontSize: 11, color: C.inkMute, fontWeight: '600' },
   ganttTitulo: { fontFamily: F.body, fontSize: 13, fontWeight: '700', color: C.ink },
   ganttObra: { fontFamily: F.body, fontSize: 11, color: C.inkMute },
   ganttBarra: { position: 'absolute', height: 22, borderRadius: 5, justifyContent: 'center', paddingHorizontal: 6, overflow: 'hidden' },

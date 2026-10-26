@@ -21,7 +21,7 @@ type Props = {
 const ALTURA_ANDAR = 0.42;
 const LARGURA = 2.4, PROFUNDIDADE = 1.7;
 const VELOCIDADE_GIRO = 0.14;   // giro automático da câmera (rad/s)
-const ENQUADRAMENTO = 1;        // >1 afasta a câmera, <1 aproxima
+const ENQUADRAMENTO = 0.92;      // >1 afasta a câmera, <1 aproxima
 
 function temWebGL() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
@@ -85,7 +85,7 @@ export default function Predio3D({ progresso, andares = 8, tema = 'claro', vitri
     const bloco = (m: THREE.Material, sombra = true) => { const b = new THREE.Mesh(caixaGeo, m); b.castShadow = sombra; b.receiveShadow = true; return b; };
 
     // ---------- terreno + tapume de obra ----------
-    const chao = new THREE.Mesh(geo(new THREE.CylinderGeometry(6.2, 6.4, 0.16, 64)), mat.chao);
+    const chao = new THREE.Mesh(geo(new THREE.CylinderGeometry(4.4, 4.6, 0.16, 64)), mat.chao);
     chao.position.y = -0.08; chao.receiveShadow = true; cena.add(chao);
     const tapume = new THREE.Group();
     const lado = (x: number, z: number, comp: number, girar: boolean) => {

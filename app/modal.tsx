@@ -119,7 +119,7 @@ export default function ModalScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.surface, padding: 24, borderTopWidth: 4, borderTopColor: C.accent },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.line, marginBottom: 24 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.line, marginBottom: 24, width: '100%', maxWidth: 640, alignSelf: 'center' },
   title: { fontFamily: F.display, fontSize: 30, fontWeight: '700', color: C.ink },
   closeButton: { padding: 8, backgroundColor: C.surface2, borderRadius: R.sm, borderWidth: 1, borderColor: C.line },
   formContainer: { flex: 1, width: '100%', maxWidth: 640, alignSelf: 'center' },

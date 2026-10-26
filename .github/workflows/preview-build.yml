@@ -20,6 +20,7 @@ jobs:
           EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: teste
       - name: publicar dist no branch build-preview
         run: |
+          mkdir -p dist/_lock && cp package-lock.json dist/_lock/
           cd dist
           git init -q -b build-preview
           git add -A
