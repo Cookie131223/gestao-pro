@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../context/AuthContext';
+import { C, F, R } from '../constants/brand';
 import { useObras } from '../context/ObraContext';
 import { createGestaoPhotoSignedUrl, uploadGestaoPhoto } from '../lib/supabase-api';
 
@@ -119,7 +120,7 @@ export default function GalleryScreen() {
     <View style={styles.page}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={20} color="#0F172A" />
+          <Feather name="arrow-left" size={20} color={C.onGraphite} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 150 }}>
           <Text style={styles.eyebrow}>GALERIA</Text>
@@ -127,10 +128,10 @@ export default function GalleryScreen() {
         </View>
         <TouchableOpacity style={styles.primaryButton} onPress={adicionarImagem} disabled={uploading}>
           {uploading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={C.accentInk} />
           ) : (
             <>
-              <Feather name="camera" size={16} color="#FFFFFF" />
+              <Feather name="camera" size={16} color={C.accentInk} />
               <Text style={styles.primaryText}>Adicionar foto</Text>
             </>
           )}
@@ -141,7 +142,7 @@ export default function GalleryScreen() {
         {obra.fotos.length === 0 ? (
           <View style={styles.emptyBox}>
             <View style={styles.emptyIcon}>
-              <Feather name="image" size={28} color="#2563EB" />
+              <Feather name="image" size={28} color={C.accentText} />
             </View>
             <Text style={styles.emptyTitle}>Nenhuma foto cadastrada</Text>
             <Text style={styles.emptyText}>Adicione imagens da evolução da obra para acompanhar o histórico.</Text>
@@ -157,11 +158,11 @@ export default function GalleryScreen() {
                   <Image source={{ uri: urls[path] }} style={styles.image} resizeMode="cover" />
                 ) : urls[path] === '' ? (
                   <TouchableOpacity accessibilityRole="button" onPress={() => setRetryCount((value) => value + 1)} style={[styles.image, styles.imagePlaceholder]}>
-                    <Text style={{ color: '#B91C1C', textAlign: 'center' }}>Não foi possível carregar. Toque para tentar novamente.</Text>
+                    <Text style={{ color: C.bad, textAlign: 'center', fontFamily: F.body }}>Não foi possível carregar. Toque para tentar novamente.</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.image, styles.imagePlaceholder]}>
-                    <ActivityIndicator color="#2563EB" />
+                    <ActivityIndicator color={C.accent} />
                   </View>
                 )}
                 <View style={styles.photoInfo}>
@@ -178,33 +179,24 @@ export default function GalleryScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 14,
-    padding: 22,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  iconButton: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { color: '#2563EB', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  title: { color: '#0F172A', fontSize: 20, fontWeight: '800', marginTop: 2 },
-  primaryButton: { minHeight: 42, paddingHorizontal: 15, borderRadius: 10, backgroundColor: '#2563EB', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  primaryText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
-  content: { padding: 22, maxWidth: 1200, width: '100%', alignSelf: 'center' },
+  page: { flex: 1, backgroundColor: C.bg },
+  header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, padding: 22, backgroundColor: C.graphite },
+  iconButton: { width: 40, height: 40, borderRadius: R.sm, backgroundColor: C.graphite3, alignItems: 'center', justifyContent: 'center' },
+  eyebrow: { fontFamily: F.body, color: C.accent, fontSize: 11, fontWeight: '700', letterSpacing: 1.4 },
+  title: { fontFamily: F.display, color: C.onGraphite, fontSize: 28, fontWeight: '700' },
+  primaryButton: { minHeight: 44, paddingHorizontal: 18, borderRadius: R.sm, backgroundColor: C.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  primaryText: { fontFamily: F.body, color: C.accentInk, fontWeight: '700', fontSize: 14 },
+  content: { padding: 22, maxWidth: 1240, width: '100%', alignSelf: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  photoCard: { width: 280, maxWidth: '100%', backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
-  image: { width: '100%', height: 190, backgroundColor: '#E2E8F0' },
-  imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  photoInfo: { padding: 12 },
-  photoTitle: { color: '#0F172A', fontSize: 13, fontWeight: '800' },
-  photoMeta: { color: '#94A3B8', fontSize: 11, marginTop: 3 },
-  emptyBox: { minHeight: 320, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 16, alignItems: 'center', justifyContent: 'center', padding: 26 },
-  emptyIcon: { width: 54, height: 54, borderRadius: 15, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { color: '#0F172A', fontSize: 16, fontWeight: '800', marginTop: 14 },
-  emptyText: { color: '#64748B', fontSize: 12, textAlign: 'center', maxWidth: 420, marginTop: 6, marginBottom: 18 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC', gap: 14 },
+  photoCard: { width: 290, flexGrow: 1, maxWidth: 420, backgroundColor: C.surface, borderRadius: R.lg, borderWidth: 1, borderColor: C.line, overflow: 'hidden' },
+  image: { width: '100%', height: 210, backgroundColor: C.graphite2 },
+  imagePlaceholder: { alignItems: 'center', justifyContent: 'center', padding: 12 },
+  photoInfo: { padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  photoTitle: { fontFamily: F.display, color: C.ink, fontSize: 18, fontWeight: '700' },
+  photoMeta: { fontFamily: F.body, color: C.inkMute, fontSize: 12 },
+  emptyBox: { minHeight: 320, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: R.lg, alignItems: 'center', justifyContent: 'center', padding: 26 },
+  emptyIcon: { width: 56, height: 56, borderRadius: 12, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontFamily: F.display, color: C.ink, fontSize: 22, fontWeight: '700', marginTop: 12 },
+  emptyText: { fontFamily: F.body, color: C.inkSoft, fontSize: 14, textAlign: 'center', maxWidth: 420, marginTop: 4, marginBottom: 18 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg, gap: 14 },
 });
