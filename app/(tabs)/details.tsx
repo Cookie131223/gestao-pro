@@ -2,12 +2,19 @@
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+
+import BarraOrcamento from '../../components/marca/BarraOrcamento';
+import Predio3D from '../../components/marca/Predio3D';
+import { C, F, R, corStatusObra, iniciais, lerData, moeda, sombra } from '../../constants/brand';
 import { useObras } from '../../context/ObraContext';
+
+const corTarefa = { 'Concluído': C.ok, 'Em Andamento': C.accent, 'Pendente': C.inkMute } as const;
 
 export default function DetailsScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 720;
+  const largo = width >= 1100;
   const params = useLocalSearchParams();
   const { obras } = useObras();
 
@@ -18,254 +25,218 @@ export default function DetailsScreen() {
   if (!obra) {
     return (
       <View style={styles.errorContainer}>
+        <Feather name="alert-circle" size={30} color={C.inkMute} />
         <Text style={styles.errorText}>Obra não encontrada ou removida.</Text>
-        <TouchableOpacity style={styles.btnVoltar} onPress={() => router.push('/(tabs)')}>
-          <Text style={styles.btnVoltarText}>Voltar ao Dashboard</Text>
+        <TouchableOpacity accessibilityRole="button" style={styles.btnPrimario} onPress={() => router.push('/(tabs)')}>
+          <Text style={styles.btnPrimarioTxt}>Voltar ao painel</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // 🧮 CÁLCULOS FINANCEIROS DINÂMICOS
-  const saldoDisponivel = obra.orcamento - obra.gasto;
-  const percentualFinanceiro = obra.orcamento > 0 ? (obra.gasto / obra.orcamento) * 100 : 0;
+  // prazo real a partir das datas da obra
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const inicio = lerData(obra.inicio), fim = lerData(obra.previsao);
+  const decorridos = inicio ? Math.max(0, Math.round((hoje.getTime() - inicio.getTime()) / 86400000)) : null;
+  const restantes = fim ? Math.round((fim.getTime() - hoje.getTime()) / 86400000) : null;
+  const prazoTexto = restantes === null ? 'A definir' : restantes < 0 ? `${-restantes} dias de atraso` : restantes === 0 ? 'Entrega hoje' : `${restantes} dias restantes`;
 
-  // Formatação amigável de Moeda BRL
-  const formatarMoeda = (valor: number) => {
-    return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
+  const saldoDisponivel = obra.orcamento - obra.gasto;
+  const st = corStatusObra(obra.status);
+  const concluidas = obra.tarefas.filter((t) => t.status === 'Concluído').length;
 
   return (
     <View style={styles.mainContainer}>
-      
-      {/* 🟢 TOP HEADER FIEL AO FIGMA */}
-      <View style={[styles.topHeader, compact && { flexWrap: 'wrap', gap: 12 }]}>
-        <View style={[styles.headerLeftRow, { flex: 1, minWidth: 0 }]}>
-          <TouchableOpacity onPress={() => router.push('/(tabs)')} style={styles.backButton}>
-            <Feather name="arrow-left" size={20} color="#0F172A" />
+      {/* cabeçalho */}
+      <View style={[styles.topHeader, compact && styles.topHeaderCompact]}>
+        <View style={styles.headerLeftRow}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Voltar ao painel" onPress={() => router.push('/(tabs)')} style={styles.backButton}>
+            <Feather name="arrow-left" size={20} color={C.onGraphite} />
           </TouchableOpacity>
-          <View style={styles.blueIconBox}>
-            <Feather name="layers" size={20} color="#FFF" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.eyebrow}>OBRA · {obra.fase.toUpperCase()}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{obra.nome}</Text>
+            <Text style={styles.headerSub} numberOfLines={1}>{obra.cliente} · {obra.endereco}</Text>
           </View>
-          <Text style={[styles.headerTitle, { flexShrink: 1 }]}>{obra.nome}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: obra.statusColor }]}>
-          <Text style={styles.badgeText}>{obra.status}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: st.fundo }]}>
+          <View style={[styles.statusDot, { backgroundColor: st.cor }]} />
+          <Text style={[styles.badgeText, { color: st.cor }]}>{obra.status}</Text>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator>
-        
-        {/* 🟢 FILEIRA DE 4 CARDS INDICADORES */}
-        <View style={styles.indicatorsGrid}>
-          
-          {/* Card 1: Cliente */}
-          <View style={[styles.indicatorCard, { borderLeftColor: '#A855F7' }]}>
-            <View style={styles.cardHeaderRow}>
-              <Feather name="user" size={16} color="#94A3B8" />
-              <Text style={styles.cardLabel}>Cliente</Text>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.scrollContent, compact && { padding: 16 }]} showsVerticalScrollIndicator>
+        {/* prédio 3D + indicadores */}
+        <View style={[styles.linha, !largo && { flexDirection: 'column' }]}>
+          <View style={[styles.cena, !largo && { minHeight: compact ? 280 : 340 }]}>
+            <Predio3D progresso={obra.progresso} tema="escuro" style={StyleSheet.absoluteFill} />
+            <View style={styles.cenaRotulo} pointerEvents="none">
+              <Text style={styles.cenaNumero}>{obra.progresso}%</Text>
+              <Text style={styles.cenaLegenda}>{concluidas} de {obra.tarefas.length} tarefa(s) concluída(s)</Text>
             </View>
-            <Text style={styles.cardMainValue} numberOfLines={1}>{obra.cliente}</Text>
           </View>
 
-          {/* Card 2: Localização */}
-          <View style={[styles.indicatorCard, { borderLeftColor: '#3B82F6' }]}>
-            <View style={styles.cardHeaderRow}>
-              <Feather name="map-pin" size={16} color="#94A3B8" />
-              <Text style={styles.cardLabel}>Localização</Text>
-            </View>
-            <Text style={styles.cardSubValue} numberOfLines={2}>{obra.endereco}</Text>
+          <View style={[styles.indicadores, largo && { width: 360 }]}>
+            {[
+              { icone: 'user', rotulo: 'Cliente', valor: obra.cliente, cor: C.info },
+              { icone: 'map-pin', rotulo: 'Localização', valor: obra.endereco, cor: C.inkSoft },
+              { icone: 'calendar', rotulo: 'Prazo', valor: prazoTexto, sub: decorridos !== null ? `${decorridos} dias decorridos · entrega ${obra.previsao}` : `Entrega ${obra.previsao}`, cor: restantes !== null && restantes < 0 ? C.bad : C.accentText },
+              { icone: 'flag', rotulo: 'Fase atual', valor: obra.fase, sub: `Início em ${obra.inicio}`, cor: C.ok },
+            ].map((c) => (
+              <View key={c.rotulo} style={styles.indicatorCard}>
+                <View style={[styles.indicatorIcone, { backgroundColor: c.cor + '1A' }]}>
+                  <Feather name={c.icone as any} size={16} color={c.cor} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.cardLabel}>{c.rotulo}</Text>
+                  <Text style={[styles.cardMainValue, c.rotulo === 'Prazo' && { color: c.cor }]} numberOfLines={2}>{c.valor}</Text>
+                  {!!c.sub && <Text style={styles.cardSubtext}>{c.sub}</Text>}
+                </View>
+              </View>
+            ))}
           </View>
-
-          {/* Card 3: Prazo */}
-          <View style={[styles.indicatorCard, { borderLeftColor: '#F97316' }]}>
-            <View style={styles.cardHeaderRow}>
-              <Feather name="calendar" size={16} color="#94A3B8" />
-              <Text style={styles.cardLabel}>Prazo</Text>
-            </View>
-            <Text style={styles.cardMainValue}>31 dias restantes</Text>
-            <Text style={styles.cardSubtext}>134 dias decorridos</Text>
-          </View>
-
-          {/* Card 4: Progresso */}
-          <View style={[styles.indicatorCard, { borderLeftColor: '#22C55E' }]}>
-            <View style={styles.cardHeaderRow}>
-              <Feather name="trending-up" size={16} color="#94A3B8" />
-              <Text style={styles.cardLabel}>Progresso</Text>
-            </View>
-            <Text style={[styles.cardMainValue, { fontSize: 32, marginTop: 4 }]}>{obra.progresso}%</Text>
-          </View>
-
         </View>
 
-        {/* 🟢 SEÇÃO DE DOIS BLOCOS (LADO A LADO) */}
-        <View style={styles.contentSplitRow}>
-          
-          {/* BLOCO DA ESQUERDA: VISÃO FINANCEIRA */}
-          <View style={[styles.leftPanel, compact && { minWidth: 0, flexBasis: '100%' }]}>
+        <View style={[styles.linha, !largo && { flexDirection: 'column' }]}>
+          {/* financeiro + ações */}
+          <View style={[styles.painel, { flex: 1.1 }]}>
             <View style={styles.panelHeader}>
-              <Feather name="dollar-sign" size={18} color="#22C55E" />
-              <Text style={styles.panelTitle}>Visão Financeira</Text>
+              <Feather name="dollar-sign" size={18} color={C.ok} />
+              <Text style={styles.panelTitle}>Visão financeira</Text>
             </View>
-
-            <View style={styles.financialDataContainer}>
-              <View style={styles.financialRow}>
-                <Text style={styles.finLabel}>Orçamento Total</Text>
-                <Text style={styles.finValueDark}>{formatarMoeda(obra.orcamento)}</Text>
-              </View>
-              
-              <View style={styles.financialRow}>
-                <Text style={styles.finLabel}>Valor Gasto</Text>
-                <Text style={[styles.finValueDark, { color: '#3B82F6' }]}>{formatarMoeda(obra.gasto)}</Text>
-              </View>
-
-              <View style={styles.financialRow}>
-                <Text style={styles.finLabel}>Saldo Disponível</Text>
-                <Text style={[styles.finValueDark, { color: '#22C55E' }]}>{formatarMoeda(saldoDisponivel)}</Text>
-              </View>
-            </View>
-
-            {/* Barra de Progresso Financeiro */}
-            <View style={styles.progressWrapper}>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${Math.min(percentualFinanceiro, 100)}%` }]} />
-              </View>
-              <Text style={styles.progressPercentageText}>{percentualFinanceiro.toFixed(1)}% do orçamento utilizado</Text>
-            </View>
-
-            {/* 🔥 BOTÕES DE AÇÃO INTEGRADOS */}
-            <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity accessibilityRole="button" style={styles.btnPrimaryAction} onPress={() => router.push({ pathname: '/tasks', params: { id: obra.id, create: '1' } })}>
-                <Feather name="plus" size={16} color="#FFF" /><Text style={styles.btnPrimaryText}>Adicionar tarefa</Text>
-              </TouchableOpacity>
-              <TouchableOpacity accessibilityRole="button" style={styles.btnSecondaryAction} onPress={() => router.push({ pathname: '/tasks', params: { id: obra.id } })}>
-                <Feather name="columns" size={16} color="#1E293B" /><Text style={styles.btnSecondaryText}>Abrir quadro de tarefas</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btnPrimaryAction} onPress={() => router.push('/explore')}>
-                <Feather name="clipboard" size={16} color="#FFF" />
-                <Text style={styles.btnPrimaryText}>Ver Cronograma</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.btnSecondaryAction}
-                onPress={() => router.push({ pathname: '/materials', params: { id: obra.id } })}
-              >
-                <Feather name="package" size={16} color="#1E293B" />
-                <Text style={styles.btnSecondaryText}>Gerenciar Materiais</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.btnSecondaryAction}
-                onPress={() => router.push({ pathname: '/gallery', params: { id: obra.id } })}
-              >
-                <Feather name="camera" size={16} color="#1E293B" />
-                <Text style={styles.btnSecondaryText}>Ver Fotos da Obra</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* BLOCO DA DIREITA: CRONOGRAMA DA OBRA (LINHA DO TEMPO) */}
-          <View style={[styles.rightPanel, compact && { minWidth: 0, flexBasis: '100%' }]}>
-            <View style={styles.panelHeader}>
-              <Feather name="calendar" size={18} color="#3B82F6" />
-              <Text style={styles.panelTitle}>Cronograma da Obra</Text>
-            </View>
-
-            <View style={styles.timelineContainer}>
-              {obra.tarefas.length === 0 ? (
-                <Text style={styles.cardSubValue}>Nenhuma tarefa cadastrada. Use “Adicionar tarefa” para planejar este projeto.</Text>
-              ) : obra.tarefas.map((tarefa) => (
-                <View key={tarefa.id} style={styles.timelineItem}>
-                  <View style={styles.timelineContent}>
-                    <Text style={styles.timelineStageTitle}>{tarefa.titulo}</Text>
-                    <Text style={styles.timelineStageDate}>{tarefa.responsavel} · Prazo: {tarefa.prazo}</Text>
-                  </View>
-                  <Text style={styles.miniStatusText}>{tarefa.status}</Text>
+            <View style={styles.finGrid}>
+              {[
+                ['Orçamento total', moeda(obra.orcamento), C.ink],
+                ['Valor gasto', moeda(obra.gasto), C.ink],
+                ['Saldo disponível', moeda(saldoDisponivel), saldoDisponivel < 0 ? C.bad : C.ok],
+              ].map(([rotulo, valor, cor]) => (
+                <View key={rotulo} style={styles.finItem}>
+                  <Text style={styles.finLabel}>{rotulo}</Text>
+                  <Text style={[styles.finValor, { color: cor }]} numberOfLines={1}>{valor}</Text>
                 </View>
+              ))}
+            </View>
+            <BarraOrcamento gasto={obra.gasto} orcamento={obra.orcamento} />
+
+            <View style={styles.acoes}>
+              <TouchableOpacity accessibilityRole="button" style={styles.btnPrimario} onPress={() => router.push({ pathname: '/tasks', params: { id: obra.id, create: '1' } })}>
+                <Feather name="plus" size={16} color={C.accentInk} /><Text style={styles.btnPrimarioTxt}>Adicionar tarefa</Text>
+              </TouchableOpacity>
+              {[
+                ['columns', 'Quadro de tarefas', () => router.push({ pathname: '/tasks', params: { id: obra.id } })],
+                ['calendar', 'Cronograma', () => router.push('/explore')],
+                ['package', 'Materiais', () => router.push({ pathname: '/materials', params: { id: obra.id } })],
+                ['camera', 'Fotos da obra', () => router.push({ pathname: '/gallery', params: { id: obra.id } })],
+              ].map(([icone, rotulo, acao]) => (
+                <TouchableOpacity key={rotulo as string} accessibilityRole="button" style={styles.btnSecundario} onPress={acao as () => void}>
+                  <Feather name={icone as any} size={16} color={C.ink} />
+                  <Text style={styles.btnSecundarioTxt}>{rotulo as string}</Text>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
 
+          {/* linha do tempo das tarefas */}
+          <View style={[styles.painel, { flex: 1 }]}>
+            <View style={styles.panelHeader}>
+              <Feather name="list" size={18} color={C.accentText} />
+              <Text style={styles.panelTitle}>Etapas da obra</Text>
+              <Text style={styles.panelContador}>{concluidas}/{obra.tarefas.length}</Text>
+            </View>
+            {obra.tarefas.length === 0 ? (
+              <Text style={styles.vazio}>Nenhuma tarefa cadastrada. Use “Adicionar tarefa” para planejar este projeto.</Text>
+            ) : (
+              <View>
+                {obra.tarefas.map((tarefa, i) => (
+                  <View key={tarefa.id} style={styles.timelineItem}>
+                    <View style={styles.timelineTrilho}>
+                      <View style={[styles.timelineNo, { borderColor: corTarefa[tarefa.status] }, tarefa.status === 'Concluído' && { backgroundColor: C.ok }]}>
+                        {tarefa.status === 'Concluído' && <Feather name="check" size={10} color="#fff" />}
+                      </View>
+                      {i < obra.tarefas.length - 1 && <View style={styles.timelineLinha} />}
+                    </View>
+                    <View style={styles.timelineContent}>
+                      <Text style={[styles.timelineTitulo, tarefa.status === 'Concluído' && { color: C.inkSoft }]}>{tarefa.titulo}</Text>
+                      <View style={styles.timelineMeta}>
+                        <View style={styles.avatarMini}><Text style={styles.avatarMiniTxt}>{iniciais(tarefa.responsavel)}</Text></View>
+                        <Text style={styles.timelineData}>{tarefa.responsavel} · prazo {tarefa.prazo}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.miniStatus, { color: tarefa.status === 'Em Andamento' ? C.accentText : corTarefa[tarefa.status] }]}>{tarefa.status}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Detalhes de Rodapé Inferior */}
-        <View style={styles.footerDetailsSection}>
-          <Text style={styles.footerSectionTitle}>Detalhes do Progresso</Text>
-          <Text style={styles.footerSectionSub}>Fase Atual: {obra.fase} • O progresso geral é calculado com base nas tarefas finalizadas.</Text>
-        </View>
-
+        <Text style={styles.rodape}>O progresso é calculado automaticamente pelas tarefas concluídas.</Text>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#F8FAFC' },
-  
-  // Header Estilizado
-  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 20, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#E2E8F0' },
-  headerLeftRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  backButton: { padding: 6, borderRadius: 8, backgroundColor: '#F1F5F9' },
-  blueIconBox: { width: 36, height: 36, backgroundColor: '#3B82F6', borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#0F172A' },
-  statusBadge: { paddingVertical: 4, paddingHorizontal: 12, borderRadius: 6 },
-  badgeText: { color: '#FFFFFF', fontSize: 11, fontWeight: '600' },
-  
-  scrollContainer: { flex: 1, padding: 24 },
-  
-  // Grid das 4 métricas superiores
-  indicatorsGrid: { flexDirection: 'row', gap: 16, marginBottom: 24, flexWrap: 'wrap' },
-  indicatorCard: { flex: 1, minWidth: '22%', backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', borderLeftWidth: 5, minHeight: 96, justifyContent: 'center' },
-  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  cardLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
-  cardMainValue: { fontSize: 16, fontWeight: 'bold', color: '#0F172A' },
-  cardSubValue: { fontSize: 13, color: '#475569', fontWeight: '500', lineHeight: 18 },
-  cardSubtext: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
-  
-  // Divisão em dois painéis horizontais
-  contentSplitRow: { flexDirection: 'row', gap: 24, flexWrap: 'wrap', marginBottom: 24 },
-  leftPanel: { flex: 1.2, minWidth: 340, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, borderWidth: 1, borderColor: '#E2E8F0' },
-  rightPanel: { flex: 1, minWidth: 300, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, borderWidth: 1, borderColor: '#E2E8F0' },
-  
-  panelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 12 },
-  panelTitle: { fontSize: 16, fontWeight: 'bold', color: '#0F172A' },
-  
-  // Painel Esquerdo: Conteúdo Financeiro
-  financialDataContainer: { gap: 14, marginBottom: 16 },
-  financialRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  finLabel: { fontSize: 14, color: '#64748B' },
-  finValueDark: { fontSize: 14, fontWeight: 'bold', color: '#0F172A' },
-  
-  progressWrapper: { marginBottom: 24 },
-  progressBarBg: { height: 10, backgroundColor: '#E2E8F0', borderRadius: 5, overflow: 'hidden', marginBottom: 6 },
-  progressBarFill: { height: '100%', backgroundColor: '#000000' },
-  progressPercentageText: { fontSize: 11, color: '#94A3B8' },
-  
-  // Botões de Ação do Painel Esquerdo
-  actionButtonsContainer: { gap: 10 },
-  btnPrimaryAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2F54EB', height: 40, borderRadius: 8, gap: 8 },
-  btnPrimaryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
-  btnSecondaryAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', height: 40, borderRadius: 8, gap: 8, borderWidth: 1, borderColor: '#D9D9D9' },
-  btnSecondaryText: { color: '#1E293B', fontSize: 13, fontWeight: '500' },
-  
-  // Painel Direito: Linha do tempo do Cronograma
-  timelineContainer: { gap: 16 },
-  timelineItem: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  timelineNode: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
-  innerDotActive: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF' },
-  timelineContent: { flex: 1 },
-  timelineStageTitle: { fontSize: 14, fontWeight: 'bold', color: '#1E293B' },
-  timelineStageDate: { fontSize: 11, color: '#94A3B8', marginTop: 1 },
-  miniStatusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12 },
-  miniStatusText: { fontSize: 11, fontWeight: '600' },
-  
-  // Seção de Rodapé
-  footerDetailsSection: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 24, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 40 },
-  footerSectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#0F172A', marginBottom: 6 },
-  footerSectionSub: { fontSize: 13, color: '#64748B' },
-  
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
-  errorText: { fontSize: 15, color: '#64748B', marginBottom: 16 },
-  btnVoltar: { backgroundColor: '#3B82F6', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8 },
-  btnVoltarText: { color: '#FFF', fontWeight: '600', fontSize: 13 }
+  mainContainer: { flex: 1, backgroundColor: C.bg },
+
+  topHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, paddingHorizontal: 28, paddingTop: 26, paddingBottom: 22, backgroundColor: C.graphite },
+  topHeaderCompact: { flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 18 },
+  headerLeftRow: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 },
+  backButton: { width: 40, height: 40, borderRadius: R.sm, backgroundColor: C.graphite3, alignItems: 'center', justifyContent: 'center' },
+  eyebrow: { fontFamily: F.body, color: C.accent, fontSize: 11, fontWeight: '700', letterSpacing: 1.4 },
+  headerTitle: { fontFamily: F.display, fontSize: 30, fontWeight: '700', color: C.onGraphite },
+  headerSub: { fontFamily: F.body, fontSize: 13, color: C.onGraphiteDim },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 11, borderRadius: R.sm },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  badgeText: { fontFamily: F.body, fontSize: 12, fontWeight: '700' },
+
+  scrollContainer: { flex: 1 },
+  scrollContent: { padding: 28, gap: 18, paddingBottom: 48, width: '100%', maxWidth: 1400, alignSelf: 'center' },
+  linha: { flexDirection: 'row', gap: 18 },
+
+  cena: { flex: 1, minHeight: 380, borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.graphite, position: 'relative', ...sombra },
+  cenaRotulo: { position: 'absolute', left: 20, top: 16 },
+  cenaNumero: { fontFamily: F.display, color: C.accent, fontSize: 48, fontWeight: '700', lineHeight: 50 },
+  cenaLegenda: { fontFamily: F.body, color: C.onGraphiteDim, fontSize: 13 },
+
+  indicadores: { gap: 12 },
+  indicatorCard: { flexDirection: 'row', gap: 12, backgroundColor: C.surface, borderRadius: R.lg, padding: 16, borderWidth: 1, borderColor: C.line, flex: 1 },
+  indicatorIcone: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  cardLabel: { fontFamily: F.body, fontSize: 12, color: C.inkMute, fontWeight: '600' },
+  cardMainValue: { fontFamily: F.display, fontSize: 20, fontWeight: '700', color: C.ink, marginTop: 1 },
+  cardSubtext: { fontFamily: F.body, fontSize: 12, color: C.inkMute, marginTop: 2 },
+
+  painel: { backgroundColor: C.surface, borderRadius: R.lg, padding: 22, borderWidth: 1, borderColor: C.line },
+  panelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: C.line, paddingBottom: 12 },
+  panelTitle: { fontFamily: F.display, fontSize: 22, fontWeight: '700', color: C.ink, flex: 1 },
+  panelContador: { fontFamily: F.display, fontSize: 18, fontWeight: '700', color: C.inkMute },
+
+  finGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  finItem: { flex: 1, minWidth: 140, backgroundColor: C.surface2, borderRadius: R.md, padding: 12, borderWidth: 1, borderColor: C.line },
+  finLabel: { fontFamily: F.body, fontSize: 12, color: C.inkMute, fontWeight: '600' },
+  finValor: { fontFamily: F.display, fontSize: 22, fontWeight: '700', marginTop: 2 },
+
+  acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 20 },
+  btnPrimario: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: C.accent, height: 42, paddingHorizontal: 16, borderRadius: R.sm, gap: 8 },
+  btnPrimarioTxt: { fontFamily: F.body, color: C.accentInk, fontSize: 14, fontWeight: '700' },
+  btnSecundario: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, height: 42, paddingHorizontal: 14, borderRadius: R.sm, gap: 8, borderWidth: 1, borderColor: C.lineStrong },
+  btnSecundarioTxt: { fontFamily: F.body, color: C.ink, fontSize: 14, fontWeight: '600' },
+
+  timelineItem: { flexDirection: 'row', gap: 12 },
+  timelineTrilho: { width: 20, alignItems: 'center' },
+  timelineNo: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  timelineLinha: { width: 2, flex: 1, backgroundColor: C.line, marginVertical: 2 },
+  timelineContent: { flex: 1, paddingBottom: 16 },
+  timelineTitulo: { fontFamily: F.body, fontSize: 15, fontWeight: '700', color: C.ink },
+  timelineMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  avatarMini: { width: 20, height: 20, borderRadius: 10, backgroundColor: C.graphite, alignItems: 'center', justifyContent: 'center' },
+  avatarMiniTxt: { fontFamily: F.body, color: C.accent, fontSize: 9, fontWeight: '700' },
+  timelineData: { fontFamily: F.body, fontSize: 12, color: C.inkMute },
+  miniStatus: { fontFamily: F.body, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  vazio: { fontFamily: F.body, fontSize: 14, color: C.inkSoft, lineHeight: 20 },
+
+  rodape: { fontFamily: F.body, fontSize: 12, color: C.inkMute, textAlign: 'center' },
+
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg, gap: 12 },
+  errorText: { fontFamily: F.body, fontSize: 15, color: C.inkSoft },
 });
