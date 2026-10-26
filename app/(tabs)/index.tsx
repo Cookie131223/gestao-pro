@@ -23,7 +23,8 @@ import { Obra, useObras } from '../../context/ObraContext';
 import { createGestaoPhotoSignedUrl } from '../../lib/supabase-api';
 
 // animação de entrada (web) — atributo data-entra definido no _layout
-const entra = (i: number) => (Platform.OS === 'web' ? ({ dataSet: { entra: '1' }, style: { animationDelay: `${i * 60}ms` } } as any) : {});
+const entra = (_i: number) => (Platform.OS === 'web' ? ({ dataSet: { entra: '1' } } as any) : {});
+const atraso = (i: number) => (Platform.OS === 'web' ? ({ animationDelay: `${i * 60}ms` } as any) : null);
 
 function diasAte(previsao: string) {
   const fim = lerData(previsao);
@@ -150,7 +151,7 @@ export default function DashboardScreen() {
 
         {/* destaque com o prédio 3D */}
         {!loading && (
-          <View style={[styles.hero, !largo && styles.heroColuna]} {...entra(0)}>
+          <View style={[styles.hero, !largo && styles.heroColuna, atraso(0)]} {...entra(0)}>
             <View style={[styles.heroCena, !largo && { minHeight: compact ? 260 : 320 }]}>
               <Predio3D progresso={destaque?.progresso ?? 0} tema="escuro" vitrine={!destaque} style={StyleSheet.absoluteFill} />
               <View style={styles.heroRotulo} pointerEvents="none">
@@ -217,7 +218,7 @@ export default function DashboardScreen() {
             { label: 'Orçamento total', value: moeda(orcamentoTotal), icon: 'pie-chart', accent: C.info, fundo: C.infoSoft },
             { label: 'Gasto acumulado', value: moeda(gastoTotal), icon: 'trending-up', accent: corOrcamento(percentualGastoGlobal), fundo: C.surface2, pct: percentualGastoGlobal },
           ].map((item, i) => (
-            <View key={item.label} style={[styles.metricCard, compact && styles.metricCardCompact]} {...entra(i + 1)}>
+            <View key={item.label} style={[styles.metricCard, compact && styles.metricCardCompact, atraso(i + 1)]} {...entra(i + 1)}>
               <View style={styles.metricTopo}>
                 <Text style={styles.metricLabel}>{item.label}</Text>
                 <View style={[styles.metricIconBox, { backgroundColor: item.fundo }]}>
@@ -237,7 +238,7 @@ export default function DashboardScreen() {
 
         {/* alerta de atrasos */}
         {atrasadas.length > 0 && (
-          <View style={styles.alerta} {...entra(5)}>
+          <View style={[styles.alerta, atraso(5)]} {...entra(5)}>
             <View style={styles.alertaFaixa} />
             <Feather name="alert-triangle" size={20} color={C.bad} />
             <View style={{ flex: 1, minWidth: 180 }}>
@@ -299,7 +300,7 @@ export default function DashboardScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Abrir ${obra.nome}`}
                   activeOpacity={0.85}
-                  style={[styles.obraCard, largo ? styles.obraCardMeio : styles.obraCardCheio]}
+                  style={[styles.obraCard, largo ? styles.obraCardMeio : styles.obraCardCheio, atraso(i + 6)]}
                   onPress={() => abrir(obra)}
                   {...entra(i + 6)}
                 >

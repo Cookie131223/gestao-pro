@@ -21,6 +21,7 @@ type Props = {
 const ALTURA_ANDAR = 0.42;
 const LARGURA = 2.4, PROFUNDIDADE = 1.7;
 const VELOCIDADE_GIRO = 0.14;   // giro automático da câmera (rad/s)
+const ENQUADRAMENTO = 1;        // >1 afasta a câmera, <1 aproxima
 
 function temWebGL() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; }
@@ -214,9 +215,11 @@ export default function Predio3D({ progresso, andares = 8, tema = 'claro', vitri
 
       // câmera orbitando
       if (!arrastando) { if (relogio - tocouEm > 2.5 && !reduzir) yaw += dt * VELOCIDADE_GIRO; else { yaw += inerciaYaw; inerciaYaw *= 0.9; } }
-      const raio = Math.max(9.5, alturaTotal * 2.6) * (w / h < 1 ? 1.35 : 1);
-      camera.position.set(Math.sin(yaw) * raio, alturaTotal * 0.85 + 2.2, Math.cos(yaw) * raio);
-      camera.lookAt(0, alturaTotal * 0.42, 0);
+      // enquadra prédio + guindaste inteiros, em qualquer proporção do quadro
+      const meiaFov = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const raio = Math.max((alturaGrua + 1.4) * 0.62 / meiaFov, 6.4 / (meiaFov * Math.max(0.5, w / h))) * ENQUADRAMENTO;
+      camera.position.set(Math.sin(yaw) * raio, alturaGrua * 0.55 + raio * 0.28, Math.cos(yaw) * raio);
+      camera.lookAt(0, alturaGrua * 0.42, 0);
 
       renderer.render(cena, camera);
       id = requestAnimationFrame(passo);
