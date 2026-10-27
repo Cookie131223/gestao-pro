@@ -1,3 +1,4 @@
+import Icone3D from '../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -142,7 +143,7 @@ export default function GalleryScreen() {
         {obra.fotos.length === 0 ? (
           <View style={styles.emptyBox}>
             <View style={styles.emptyIcon}>
-              <Feather name="image" size={28} color={C.accentText} />
+              <Icone3D nome="imagem" tamanho={44} />
             </View>
             <Text style={styles.emptyTitle}>Nenhuma foto cadastrada</Text>
             <Text style={styles.emptyText}>Adicione imagens da evolução da obra para acompanhar o histórico.</Text>

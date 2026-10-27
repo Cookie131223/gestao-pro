@@ -1,3 +1,4 @@
+import Icone3D from '../../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -170,12 +171,12 @@ export default function DashboardScreen() {
                   </View>
                   <View style={styles.heroLinhas}>
                     {[
-                      ['flag', 'Fase', destaque.fase],
-                      ['clock', 'Prazo', textoPrazo(destaque.previsao)],
-                      ['user', 'Cliente', destaque.cliente],
+                      ['bandeira', 'Fase', destaque.fase],
+                      ['relogio', 'Prazo', textoPrazo(destaque.previsao)],
+                      ['usuario', 'Cliente', destaque.cliente],
                     ].map(([icone, rotulo, valor]) => (
                       <View key={rotulo} style={styles.heroLinha}>
-                        <Feather name={icone as any} size={15} color={C.accent} />
+                        <Icone3D nome={icone as any} tamanho={20} />
                         <Text style={styles.heroLinhaRotulo}>{rotulo}</Text>
                         <Text style={styles.heroLinhaValor} numberOfLines={1}>{valor}</Text>
                       </View>
@@ -213,16 +214,16 @@ export default function DashboardScreen() {
         {/* indicadores */}
         <View style={styles.metricsGrid}>
           {[
-            { label: 'Obras ativas', value: String(obrasAtivas), icon: 'briefcase', accent: C.accentText, fundo: C.accentSoft },
-            { label: 'Atrasadas', value: String(atrasadas.length), icon: 'alert-triangle', accent: atrasadas.length ? C.bad : C.inkMute, fundo: atrasadas.length ? C.badSoft : C.surface2 },
-            { label: 'Orçamento total', value: moeda(orcamentoTotal), icon: 'pie-chart', accent: C.info, fundo: C.infoSoft },
-            { label: 'Gasto acumulado', value: moeda(gastoTotal), icon: 'trending-up', accent: corOrcamento(percentualGastoGlobal), fundo: C.surface2, pct: percentualGastoGlobal },
+            { label: 'Obras ativas', value: String(obrasAtivas), icon: 'maleta', accent: C.accentText, fundo: C.accentSoft },
+            { label: 'Atrasadas', value: String(atrasadas.length), icon: 'alerta', accent: atrasadas.length ? C.bad : C.inkMute, fundo: atrasadas.length ? C.badSoft : C.surface2 },
+            { label: 'Orçamento total', value: moeda(orcamentoTotal), icon: 'pizza', accent: C.info, fundo: C.infoSoft },
+            { label: 'Gasto acumulado', value: moeda(gastoTotal), icon: 'tendencia', accent: corOrcamento(percentualGastoGlobal), fundo: C.surface2, pct: percentualGastoGlobal },
           ].map((item, i) => (
             <View key={item.label} style={[styles.metricCard, compact && styles.metricCardCompact, atraso(i + 1)]} {...entra(i + 1)}>
               <View style={styles.metricTopo}>
                 <Text style={styles.metricLabel}>{item.label}</Text>
                 <View style={[styles.metricIconBox, { backgroundColor: item.fundo }]}>
-                  <Feather name={item.icon as any} size={16} color={item.accent} />
+                  <Icone3D nome={item.icon as any} tamanho={28} />
                 </View>
               </View>
               <Text style={styles.metricValue} numberOfLines={1}>{item.value}</Text>
@@ -240,7 +241,7 @@ export default function DashboardScreen() {
         {atrasadas.length > 0 && (
           <View style={[styles.alerta, atraso(5)]} {...entra(5)}>
             <View style={styles.alertaFaixa} />
-            <Feather name="alert-triangle" size={20} color={C.bad} />
+            <Icone3D nome="alerta" tamanho={26} />
             <View style={{ flex: 1, minWidth: 180 }}>
               <Text style={styles.alertaTitulo}>{atrasadas.length === 1 ? '1 obra atrasada precisa de atenção' : `${atrasadas.length} obras atrasadas precisam de atenção`}</Text>
               <Text style={styles.alertaTexto} numberOfLines={2}>{atrasadas.map((o) => o.nome).join(' · ')}</Text>
@@ -396,7 +397,7 @@ const styles = StyleSheet.create({
   metricCard: { flex: 1, minWidth: 220, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: R.lg, padding: 18 },
   metricCardCompact: { minWidth: '100%' as any },
   metricTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  metricIconBox: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  metricIconBox: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   metricLabel: { fontFamily: F.body, color: C.inkSoft, fontSize: 13, fontWeight: '600' },
   metricValue: { fontFamily: F.display, color: C.ink, fontSize: 30, fontWeight: '700', marginTop: 6 },
   metricSubtext: { fontFamily: F.body, color: C.inkMute, fontSize: 12, marginTop: 5 },
