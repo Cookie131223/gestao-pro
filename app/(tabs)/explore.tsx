@@ -1,4 +1,5 @@
 // app/(tabs)/explore.tsx — Cronograma: gráfico de Gantt + lista de tarefas
+import Icone3D from '../../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -93,7 +94,7 @@ export default function CronogramaScreen() {
 
         {todasAsTarefas.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Feather name="calendar" size={36} color={C.inkMute} />
+            <Icone3D nome="calendario" tamanho={52} />
             <Text style={styles.emptyTitle}>Nenhuma tarefa no cronograma</Text>
             <Text style={styles.emptyText}>Adicione tarefas com início e prazo para ver a linha do tempo.</Text>
           </View>

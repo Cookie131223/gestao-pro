@@ -1,4 +1,5 @@
 // app/(tabs)/details.tsx
+import Icone3D from '../../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -25,7 +26,7 @@ export default function DetailsScreen() {
   if (!obra) {
     return (
       <View style={styles.errorContainer}>
-        <Feather name="alert-circle" size={30} color={C.inkMute} />
+        <Icone3D nome="alerta" tamanho={44} />
         <Text style={styles.errorText}>Obra não encontrada ou removida.</Text>
         <TouchableOpacity accessibilityRole="button" style={styles.btnPrimario} onPress={() => router.push('/(tabs)')}>
           <Text style={styles.btnPrimarioTxt}>Voltar ao painel</Text>
@@ -78,14 +79,14 @@ export default function DetailsScreen() {
 
           <View style={[styles.indicadores, largo && { width: 360 }]}>
             {[
-              { icone: 'user', rotulo: 'Cliente', valor: obra.cliente, cor: C.info },
-              { icone: 'map-pin', rotulo: 'Localização', valor: obra.endereco, cor: C.inkSoft },
-              { icone: 'calendar', rotulo: 'Prazo', valor: prazoTexto, sub: decorridos !== null ? `${decorridos} dias decorridos · entrega ${obra.previsao}` : `Entrega ${obra.previsao}`, cor: restantes !== null && restantes < 0 ? C.bad : C.accentText },
-              { icone: 'flag', rotulo: 'Fase atual', valor: obra.fase, sub: `Início em ${obra.inicio}`, cor: C.ok },
+              { icone: 'usuario', rotulo: 'Cliente', valor: obra.cliente, cor: C.info },
+              { icone: 'pino', rotulo: 'Localização', valor: obra.endereco, cor: C.inkSoft },
+              { icone: 'calendario', rotulo: 'Prazo', valor: prazoTexto, sub: decorridos !== null ? `${decorridos} dias decorridos · entrega ${obra.previsao}` : `Entrega ${obra.previsao}`, cor: restantes !== null && restantes < 0 ? C.bad : C.accentText },
+              { icone: 'bandeira', rotulo: 'Fase atual', valor: obra.fase, sub: `Início em ${obra.inicio}`, cor: C.ok },
             ].map((c) => (
               <View key={c.rotulo} style={styles.indicatorCard}>
                 <View style={[styles.indicatorIcone, { backgroundColor: c.cor + '1A' }]}>
-                  <Feather name={c.icone as any} size={16} color={c.cor} />
+                  <Icone3D nome={c.icone as any} tamanho={26} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.cardLabel}>{c.rotulo}</Text>
@@ -101,7 +102,7 @@ export default function DetailsScreen() {
           {/* financeiro + ações */}
           <View style={[styles.painel, { flex: 1.1 }]}>
             <View style={styles.panelHeader}>
-              <Feather name="dollar-sign" size={18} color={C.ok} />
+              <Icone3D nome="moeda" tamanho={24} />
               <Text style={styles.panelTitle}>Visão financeira</Text>
             </View>
             <View style={styles.finGrid}>
@@ -123,13 +124,13 @@ export default function DetailsScreen() {
                 <Feather name="plus" size={16} color={C.accentInk} /><Text style={styles.btnPrimarioTxt}>Adicionar tarefa</Text>
               </TouchableOpacity>
               {[
-                ['columns', 'Quadro de tarefas', () => router.push({ pathname: '/tasks', params: { id: obra.id } })],
-                ['calendar', 'Cronograma', () => router.push('/explore')],
-                ['package', 'Materiais', () => router.push({ pathname: '/materials', params: { id: obra.id } })],
+                ['colunas', 'Quadro de tarefas', () => router.push({ pathname: '/tasks', params: { id: obra.id } })],
+                ['calendario', 'Cronograma', () => router.push('/explore')],
+                ['caixa', 'Materiais', () => router.push({ pathname: '/materials', params: { id: obra.id } })],
                 ['camera', 'Fotos da obra', () => router.push({ pathname: '/gallery', params: { id: obra.id } })],
               ].map(([icone, rotulo, acao]) => (
                 <TouchableOpacity key={rotulo as string} accessibilityRole="button" style={styles.btnSecundario} onPress={acao as () => void}>
-                  <Feather name={icone as any} size={16} color={C.ink} />
+                  <Icone3D nome={icone as any} tamanho={22} />
                   <Text style={styles.btnSecundarioTxt}>{rotulo as string}</Text>
                 </TouchableOpacity>
               ))}
@@ -139,7 +140,7 @@ export default function DetailsScreen() {
           {/* linha do tempo das tarefas */}
           <View style={[styles.painel, { flex: 1 }]}>
             <View style={styles.panelHeader}>
-              <Feather name="list" size={18} color={C.accentText} />
+              <Icone3D nome="lista" tamanho={24} />
               <Text style={styles.panelTitle}>Etapas da obra</Text>
               <Text style={styles.panelContador}>{concluidas}/{obra.tarefas.length}</Text>
             </View>

@@ -1,3 +1,4 @@
+import Icone3D from '../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -80,13 +81,13 @@ export default function LoginScreen() {
           </View>
           <View style={styles.featureList} pointerEvents="none">
             {[
-              ['cloud', 'Dados sincronizados na nuvem'],
-              ['bar-chart-2', 'Custos e progresso em tempo real'],
-              ['lock', 'Conta individual e dados privados'],
+              ['nuvem', 'Dados sincronizados na nuvem'],
+              ['grafico', 'Custos e progresso em tempo real'],
+              ['cadeado', 'Conta individual e dados privados'],
             ].map(([icon, label]) => (
               <View key={label} style={styles.feature}>
                 <View style={styles.featureIcon}>
-                  <Feather name={icon as any} size={15} color={C.accentInk} />
+                  <Icone3D nome={icon as any} tamanho={26} />
                 </View>
                 <Text style={styles.featureText}>{label}</Text>
               </View>
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   heroText: { fontFamily: F.body, marginTop: 14, maxWidth: 440, color: C.onGraphiteDim, fontSize: 18, lineHeight: 27 },
   featureList: { gap: 12 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  featureIcon: { width: 30, height: 30, borderRadius: 7, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' },
+  featureIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center' },
   featureText: { fontFamily: F.body, color: C.onGraphite, fontSize: 15, fontWeight: '600' },
   authColumn: { flex: 0.9, alignItems: 'center', justifyContent: 'center', padding: 36 },
   authColumnCompact: { flex: 1, padding: 20 },

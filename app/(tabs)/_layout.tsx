@@ -1,3 +1,4 @@
+import Icone3D from '../../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import { Tabs, usePathname, useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
@@ -8,9 +9,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useObras } from '../../context/ObraContext';
 
 const NAV = [
-  { rota: '/', nome: 'Painel', icone: 'grid' },
-  { rota: '/explore', nome: 'Cronograma', icone: 'calendar' },
-  { rota: '/tasks', nome: 'Tarefas', icone: 'columns' },
+  { rota: '/', nome: 'Painel', icone: 'grid', icone3d: 'painel' },
+  { rota: '/explore', nome: 'Cronograma', icone: 'calendar', icone3d: 'calendario' },
+  { rota: '/tasks', nome: 'Tarefas', icone: 'columns', icone3d: 'colunas' },
 ] as const;
 
 export default function TabLayout() {
@@ -55,7 +56,7 @@ export default function TabLayout() {
                     onPress={() => router.push(item.rota)}
                   >
                     {ativo && <View style={styles.navMarca} />}
-                    <Feather name={item.icone} size={18} color={ativo ? C.accent : C.onGraphiteDim} />
+                    <Icone3D nome={item.icone3d} tamanho={22} apagado={!ativo} />
                     <Text style={[styles.navText, ativo && styles.navTextActive]}>{item.nome}</Text>
                     {item.rota === '/' && atrasadas > 0 && (
                       <View style={styles.navAlerta}><Text style={styles.navAlertaTxt}>{atrasadas}</Text></View>
@@ -116,7 +117,7 @@ export default function TabLayout() {
             options={{
               title: 'Painel · GestãoPro',
               tabBarLabel: 'Painel',
-              tabBarIcon: ({ color }) => <Feather name="grid" size={20} color={color} />,
+              tabBarIcon: ({ focused }) => <Icone3D nome="painel" tamanho={24} apagado={!focused} />,
             }}
           />
           <Tabs.Screen
@@ -124,10 +125,10 @@ export default function TabLayout() {
             options={{
               title: 'Cronograma · GestãoPro',
               tabBarLabel: 'Cronograma',
-              tabBarIcon: ({ color }) => <Feather name="calendar" size={20} color={color} />,
+              tabBarIcon: ({ focused }) => <Icone3D nome="calendario" tamanho={24} apagado={!focused} />,
             }}
           />
-          <Tabs.Screen name="tasks" options={{ title: 'Tarefas · GestãoPro', tabBarLabel: 'Tarefas', tabBarIcon: ({ color }) => <Feather name="columns" size={20} color={color} /> }} />
+          <Tabs.Screen name="tasks" options={{ title: 'Tarefas · GestãoPro', tabBarLabel: 'Tarefas', tabBarIcon: ({ focused }) => <Icone3D nome="colunas" tamanho={24} apagado={!focused} /> }} />
           <Tabs.Screen name="details" options={{ href: null, title: 'Obra · GestãoPro' }} />
         </Tabs>
       </View>

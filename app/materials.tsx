@@ -1,3 +1,4 @@
+import Icone3D from '../components/marca/Icone3D';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -140,7 +141,7 @@ export default function MaterialsScreen() {
 
           {obra.materiais.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Feather name="package" size={28} color={C.inkMute} />
+              <Icone3D nome="caixa" tamanho={44} />
               <Text style={styles.emptyTitle}>Nenhum material cadastrado</Text>
               <Text style={styles.emptyText}>Adicione o primeiro item acima.</Text>
             </View>
@@ -149,7 +150,7 @@ export default function MaterialsScreen() {
               {obra.materiais.map((item) => (
                 <View key={item.id} style={styles.itemCard}>
                   <View style={styles.itemIcon}>
-                    <Feather name="box" size={18} color={C.accentText} />
+                    <Icone3D nome="caixa" tamanho={24} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemName}>{item.nome}</Text>
