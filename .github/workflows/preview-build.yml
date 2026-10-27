@@ -21,6 +21,7 @@ jobs:
       - name: publicar dist no branch build-preview
         run: |
           mkdir -p dist/_lock && cp package-lock.json dist/_lock/
+          echo '{"git":{"deploymentEnabled":false}}' > dist/vercel.json
           cd dist
           git init -q -b build-preview
           git add -A
