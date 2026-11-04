@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { C, F, R } from '../constants/brand';
 import { useObras } from '../context/ObraContext';
+import { avisarVitrine, VITRINE } from '../lib/vitrine';
 
 export default function ModalScreen() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function ModalScreen() {
   const [orcamento, setOrcamento] = useState('')
 
  const handleSalvar = () => {
+    if (VITRINE) { avisarVitrine(); return; }
     if (!nomeObra || !cliente) {
       alert('Por favor, preencha o nome da obra e do cliente.');
       return;

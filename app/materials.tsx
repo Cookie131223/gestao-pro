@@ -14,6 +14,7 @@ import {
 
 import { C, F, R } from '../constants/brand';
 import { useObras } from '../context/ObraContext';
+import { avisarVitrine, VITRINE } from '../lib/vitrine';
 import { parseBRL } from '../lib/currency';
 
 export default function MaterialsScreen() {
@@ -45,6 +46,7 @@ export default function MaterialsScreen() {
   }
 
   function salvar() {
+    if (VITRINE) { avisarVitrine(); return; }
     if (!obra) return;
     const parsedValue = parseBRL(valor);
 

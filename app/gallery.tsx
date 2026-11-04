@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { C, F, R } from '../constants/brand';
 import { useObras } from '../context/ObraContext';
+import { avisarVitrine, VITRINE } from '../lib/vitrine';
 import { createGestaoPhotoSignedUrl, uploadGestaoPhoto } from '../lib/supabase-api';
 
 export default function GalleryScreen() {
@@ -74,6 +75,7 @@ export default function GalleryScreen() {
   }
 
   async function adicionarImagem() {
+    if (VITRINE) { avisarVitrine(); return; }
     if (!obra || !session) return;
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();

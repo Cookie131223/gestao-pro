@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { useAuth } from './AuthContext';
 import { getGestaoData, saveGestaoData, SyncConflictError } from '../lib/supabase-api';
 import { mergeSnapshots } from '../lib/merge-snapshots';
+import { avisarVitrine, OBRAS_VITRINE, VITRINE } from '../lib/vitrine';
 
 export interface Tarefa {
   id: string;
@@ -98,6 +99,10 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    if (VITRINE) { // vitrine: obras de exemplo, sem nuvem
+      latest.current = OBRAS_VITRINE; setObras(OBRAS_VITRINE); setLastSync(new Date()); setSyncError(null); setLoading(false);
+      return;
+    }
     const epoch = ++generation.current;
     let active = true;
     busy.current = false;
@@ -151,6 +156,7 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user.id, storageKey]);
 
   async function synchronize(prefer?: 'local' | 'remote') {
+    if (VITRINE) return;
     if (busy.current || !storageKey || !owner.current) return;
     const epoch = generation.current;
     const userId = owner.current;
@@ -214,6 +220,7 @@ export function ObraProvider({ children }: { children: React.ReactNode }) {
   }
 
   function persist(next: Obra[]) {
+    if (VITRINE) { avisarVitrine(); return; }
     latest.current = next;
     setObras(next);
     if (!storageKey) return;

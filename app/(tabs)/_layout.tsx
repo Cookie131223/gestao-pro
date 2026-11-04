@@ -7,6 +7,7 @@ import Logo from '../../components/marca/Logo';
 import { C, F, iniciais } from '../../constants/brand';
 import { useAuth } from '../../context/AuthContext';
 import { useObras } from '../../context/ObraContext';
+import { avisarVitrine, VITRINE } from '../../lib/vitrine';
 
 const NAV = [
   { rota: '/', nome: 'Painel', icone: 'grid', icone3d: 'painel' },
@@ -26,6 +27,7 @@ export default function TabLayout() {
   const atrasadas = obras.filter((o) => o.status === 'Atrasada').length;
 
   async function handleLogout() {
+    if (VITRINE) { avisarVitrine(); return; }
     await logout();
     router.replace('/login');
   }

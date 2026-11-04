@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { AppState, Platform } from 'react-native';
 import { AuthSession, refreshSession, signIn, signOutRemote, signUp } from '../lib/supabase-api';
 import { SessionManager, SESSION_KEY } from '../lib/session-manager';
+import { avisarVitrine, SESSAO_VITRINE, VITRINE } from '../lib/vitrine';
 
 type AuthContextValue = {
   session: AuthSession | null;
@@ -15,8 +16,8 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<AuthSession | null>(VITRINE ? SESSAO_VITRINE : null);
+  const [loading, setLoading] = useState(!VITRINE);
   const managerRef = useRef<SessionManager | null>(null);
   if (!managerRef.current) {
     managerRef.current = new SessionManager(AsyncStorage, refreshSession, setSession, Date.now, async (work) => {
@@ -29,13 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const manager = managerRef.current;
 
   useEffect(() => {
+    if (VITRINE) return; // vitrine: sessão de exemplo, sem conta
     let active = true;
     void manager.restore().finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [manager]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || VITRINE) return;
     const refresh = () => { if (manager.current) void manager.getAccessToken().catch(() => {}); };
     const timer = setInterval(refresh, 30_000);
     const appListener = AppState.addEventListener('change', (state) => { if (state === 'active') refresh(); });
@@ -59,20 +61,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loading, manager]);
 
   async function login(email: string, password: string) {
+    if (VITRINE) { avisarVitrine(); return; }
     await manager.set(await signIn(email.trim().toLowerCase(), password));
   }
   async function register(email: string, password: string) {
+    if (VITRINE) { avisarVitrine(); return 'confirm-email' as const; }
     const next = await signUp(email.trim().toLowerCase(), password);
     if (!next) return 'confirm-email' as const;
     await manager.set(next);
     return 'signed-in' as const;
   }
   async function logout() {
+    if (VITRINE) { avisarVitrine(); return; }
     const current = manager.current;
     await manager.set(null);
     if (current) { try { await signOutRemote(current.access_token); } catch { /* Local logout already completed. */ } }
   }
-  return <AuthContext.Provider value={{ session, loading, login, register, logout, getAccessToken: () => manager.getAccessToken() }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ session, loading, login, register, logout, getAccessToken: () => (VITRINE ? Promise.resolve('vitrine') : manager.getAccessToken()) }}>{children}</AuthContext.Provider>;
 }
 export function useAuth() {
   const value = useContext(AuthContext);

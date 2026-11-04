@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { C, F, R, iniciais, lerData } from '../../constants/brand';
 import { Tarefa, useObras } from '../../context/ObraContext';
+import { avisarVitrine, VITRINE } from '../../lib/vitrine';
 import { validateTask } from '../../lib/task-form';
 
 const columns: { status: Tarefa['status']; title: string; color: string }[] = [
@@ -56,6 +57,7 @@ export default function TaskBoardScreen() {
   }, [routeId, params.create, router]);
 
   function saveTask() {
+    if (VITRINE) { avisarVitrine(); return; }
     if (submitted.current) return;
     const validation = validateTask(projectId, draft);
     if (validation) { setError(validation); return; }

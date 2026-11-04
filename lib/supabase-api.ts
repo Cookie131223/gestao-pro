@@ -1,3 +1,5 @@
+import { fotoVitrine, VITRINE } from './vitrine';
+
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -163,6 +165,7 @@ export async function createGestaoPhotoSignedUrl(
   objectPath: string,
   expiresIn = 3600
 ) {
+  if (VITRINE) return fotoVitrine(objectPath);
   const { url, key } = config();
   const response = await fetch(
     `${url}/storage/v1/object/sign/gestao-fotos/${objectPath}`,
